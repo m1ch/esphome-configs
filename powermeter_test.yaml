@@ -1,0 +1,370 @@
+esphome:
+  name: powermeter_test
+  platform: ESP32
+  board: esp32dev
+  on_boot:
+    then:
+      lambda: |-
+        for(int i=0; i<12; i++){
+            id(td_p1)[i] = 9999;
+            id(td_p2)[i] = 9999;
+            id(pc)[i] = 0;
+        }
+
+globals:
+  - id: e_count
+    type: unsigned int[12]
+  - id: e_count_min
+    type: unsigned int[12]
+  - id: e_count_h
+    type: unsigned int[12]
+  - id: e_count_d
+    type: unsigned int[12]
+
+  - id: t
+    type: unsigned int
+    initial_value: '1'
+  - id: ti
+    type: unsigned int
+    initial_value: '5'
+  - id: td_p1
+    type: unsigned int[12]
+  - id: td_p2
+    type: unsigned int[12]
+  - id: pc
+    type: unsigned int[12]
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pw
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Powermeter Fallback Hotspot"
+    password: !secret wifi_pw
+
+mqtt:
+  id: mqtt_client
+  broker: !secret mqtt_host
+  username: !secret mqtt_user
+  password: !secret mqtt_pw
+  discovery: false # Only for testpurposes
+
+
+# web_server:
+#  port: 80
+
+captive_portal:
+
+# Enable time component to reset energy at midnight
+time:
+  - platform: sntp
+    id: sntp_time
+    on_time:
+      - seconds: /1
+        then:
+          - lambda: |-
+              float p[12];
+
+              for( int i=0; i<12; i++){
+                id(td_p1)[i] += 1;
+              }
+
+              if (id(t) < id(ti)) {
+                id(t) += 1;
+              }
+              else {
+                float t_;
+                for( int i=0; i<12; i++){
+                  if (id(pc)[i] < 2) {
+                    t_ = float(max(id(td_p1)[i], id(td_p2)[i]));
+                  }
+                  else {
+                    t_ = float(id(ti))/id(pc)[i];
+                  }
+                  p[i] = 3600.0/t_;
+                  
+                  // ESP_LOGD("power", "t_: %f; pc: %d", t_, id(pc)[i]);
+
+                  id(pc)[i] = 0;
+                }
+                id(t) = 1;
+
+                id(mqtt_client).publish_json("powermeter_test/sensor/power", [=](JsonObject &root) { 
+                  root["Unit"] = "W";
+                  root["P01"] = p[1];
+                  root["P03"] = p[3];
+                  root["P04"] = p[4];
+                  root["P05"] = p[5];
+                  root["P06"] = p[6];
+                  root["P07"] = p[7];
+                  root["P08"] = p[8];
+                  root["P09"] = p[9];
+                  root["P10"] = p[10];
+                  root["P11"] = p[11];
+                });
+              }
+      - seconds: 0
+        then:
+          - lambda: |-
+              // char buffer [80];
+              // strftime (buffer,80,"%Y-%m-%d %H:%M:%S",id(sntp_time).now());
+
+              id(mqtt_client).publish_json("powermeter_test/sensor/energy_minutely", [=](JsonObject &root) { 
+                root["Unit"] = "Wh" ; 
+                root["E01"] = id(e_count)[1] - id(e_count_min)[1] ; 
+                root["E03"] = id(e_count)[3] - id(e_count_min)[3] ; 
+                root["E04"] = id(e_count)[4] - id(e_count_min)[4] ; 
+                root["E05"] = id(e_count)[5] - id(e_count_min)[5] ; 
+                root["E06"] = id(e_count)[6] - id(e_count_min)[6] ; 
+                root["E07"] = id(e_count)[7] - id(e_count_min)[7] ; 
+                root["E08"] = id(e_count)[8] - id(e_count_min)[8] ; 
+                root["E09"] = id(e_count)[9] - id(e_count_min)[8] ; 
+                root["E10"] = id(e_count)[10] - id(e_count_min)[10] ; 
+                root["E11"] = id(e_count)[11] - id(e_count_min)[11] ;
+                // root["Time"] = buffer;
+              });
+              for(int i = 0; i<12; i++){
+                id(e_count_min)[i] = id(e_count)[i];
+              }
+      - seconds: 0
+        minutes: 0
+        then:
+          - lambda: |-
+              id(mqtt_client).publish_json("powermeter_test/sensor/energy_hourly", [=](JsonObject &root) { 
+                root["Unit"] = "Wh" ; 
+                root["E01"] = id(e_count)[1] - id(e_count_h)[1] ; 
+                root["E03"] = id(e_count)[3] - id(e_count_h)[3] ; 
+                root["E04"] = id(e_count)[4] - id(e_count_h)[4] ; 
+                root["E05"] = id(e_count)[5] - id(e_count_h)[5] ; 
+                root["E06"] = id(e_count)[6] - id(e_count_h)[6] ; 
+                root["E07"] = id(e_count)[7] - id(e_count_h)[7] ; 
+                root["E08"] = id(e_count)[8] - id(e_count_h)[8] ; 
+                root["E09"] = id(e_count)[9] - id(e_count_h)[8] ; 
+                root["E10"] = id(e_count)[10] - id(e_count_h)[10] ; 
+                root["E11"] = id(e_count)[11] - id(e_count_h)[11] ;
+              });
+              for(int i =0; i<12; i++){
+                id(e_count_h)[i] = id(e_count)[i];
+              }
+      - seconds: 0
+        minutes: 0
+        hours: 0
+        then:
+          - lambda: |-
+              id(mqtt_client).publish_json("powermeter_test/sensor/energy_daily", [=](JsonObject &root) { 
+                root["Unit"] = "Wh" ; 
+                root["E01"] = id(e_count)[1] - id(e_count_d)[1] ; 
+                root["E03"] = id(e_count)[3] - id(e_count_d)[3] ; 
+                root["E04"] = id(e_count)[4] - id(e_count_d)[4] ; 
+                root["E05"] = id(e_count)[5] - id(e_count_d)[5] ; 
+                root["E06"] = id(e_count)[6] - id(e_count_d)[6] ; 
+                root["E07"] = id(e_count)[7] - id(e_count_d)[7] ; 
+                root["E08"] = id(e_count)[8] - id(e_count_d)[8] ; 
+                root["E09"] = id(e_count)[9] - id(e_count_d)[8] ; 
+                root["E10"] = id(e_count)[10] - id(e_count_d)[10] ; 
+                root["E11"] = id(e_count)[11] - id(e_count_d)[11] ;
+              });
+              for(int i =0; i<12; i++){
+                id(e_count_d)[i] = id(e_count)[i];
+              }
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+# api:
+
+ota:
+
+# Sensors:
+binary_sensor:
+  - platform: gpio
+    device_class: power    
+    pin: 
+      number: 2
+      mode: INPUT_PULLDOWN
+    filters:
+      - delayed_on: 13ms
+    id: s0_01
+    internal: True
+    on_press:
+      then:
+        # - mqtt.publish_json:
+        #     topic: test/press
+        #     payload: |-
+        #       root["time"] = id(sntp_time).now().timestamp;
+        - lambda: |-
+            id(e_count)[1] += 1;
+            id(td_p2)[1] = id(td_p1)[1];
+            id(td_p1)[1] = 0;
+            id(pc)[1] += 1;
+    # on_click:
+    #   min_length: 15ms
+    #   max_length: 25ms
+    #   then:
+    #     - mqtt.publish_json:
+    #         topic: test/click
+    #         payload: |-
+    #           root["time"] = id(sntp_time).now().timestamp;
+
+  # - platform: gpio
+  #   device_class: power    
+  #   pin: 
+  #     number: 0
+  #     mode: INPUT_PULLDOWN
+  #   filters:
+  #     - delayed_on: 10ms
+  #   name: s0_02
+  - platform: gpio
+    id: s0_03
+    device_class: power    
+    pin: 
+      number: 4
+      mode: INPUT_PULLDOWN
+    filters:
+      - delayed_on: 13ms
+    internal: True
+    on_press:
+      then:
+        - lambda: |-
+            id(e_count)[3] += 1;
+            id(td_p2)[3] = id(td_p1)[3];
+            id(td_p1)[3] = 0;
+            id(pc)[3] += 1;
+  - platform: gpio
+    id: s0_04
+    device_class: power    
+    pin: 
+      number: 32
+      mode: INPUT_PULLDOWN
+    filters:
+      - delayed_on: 13ms
+    internal: True
+    on_press:
+      then:
+        - lambda: |-
+            id(e_count)[4] += 1;
+            id(td_p2)[4] = id(td_p1)[4];
+            id(td_p1)[4] = 0;
+            id(pc)[4] += 1;
+  - platform: gpio
+    id: s0_05
+    device_class: power    
+    pin: 
+      number: 25
+      mode: INPUT_PULLDOWN
+    filters:
+      - delayed_on: 13ms
+    internal: True
+    on_press:
+      then:
+        - lambda: |-
+            id(e_count)[5] += 1;
+            id(td_p2)[5] = id(td_p1)[5];
+            id(td_p1)[5] = 0;
+            id(pc)[5] += 1;
+  - platform: gpio
+    id: s0_06
+    device_class: power    
+    pin: 
+      number: 27
+      mode: INPUT_PULLDOWN
+    filters:
+      - delayed_on: 13ms
+    internal: True
+    on_press:
+      then:
+        - lambda: |-
+            id(e_count)[6] += 1;
+            id(td_p2)[6] = id(td_p1)[6];
+            id(td_p1)[6] = 0;
+            id(pc)[6] += 1;
+  - platform: gpio
+    id: s0_07
+    device_class: power    
+    pin: 
+      number: 16
+      mode: INPUT_PULLDOWN
+    filters:
+      - delayed_on: 13ms
+    internal: True
+    on_press:
+      then:
+        - lambda: |-
+            id(e_count)[7] += 1;
+            id(td_p2)[7] = id(td_p1)[7];
+            id(td_p1)[7] = 0;
+            id(pc)[7] += 1;
+  - platform: gpio
+    id: s0_08
+    device_class: power    
+    pin: 
+      number: 17
+      mode: INPUT_PULLDOWN
+    filters:
+      - delayed_on: 13ms
+    internal: True
+    on_press:
+      then:
+        - lambda: |-
+            id(e_count)[8] += 1;
+            id(td_p2)[8] = id(td_p1)[8];
+            id(td_p1)[8] = 0;
+            id(pc)[8] += 1;
+  - platform: gpio
+    id: s0_09
+    device_class: power    
+    pin: 
+      number: 21
+      mode: INPUT_PULLDOWN
+    filters:
+      - delayed_on: 13ms
+    internal: True
+    on_press:
+      then:
+        - lambda: |-
+            id(e_count)[9] += 1;
+            id(td_p2)[9] = id(td_p1)[9];
+            id(td_p1)[9] = 0;
+            id(pc)[9] += 1;
+  - platform: gpio
+    id: s0_10
+    device_class: power    
+    pin: 
+      number: 22
+      mode: INPUT_PULLDOWN
+    filters:
+      - delayed_on: 13ms
+    internal: True
+    on_press:
+      then:
+        - lambda: |-
+            id(e_count)[10] += 1;
+            id(td_p2)[10] = id(td_p1)[10];
+            id(td_p1)[10] = 0;
+            id(pc)[10] += 1;
+  - platform: gpio
+    id: s0_11
+    device_class: power    
+    pin: 
+      number: 5
+      mode: INPUT_PULLDOWN
+    filters:
+      - delayed_on: 13ms
+    internal: True
+    on_press:
+      then:
+        - lambda: |-
+            id(e_count)[11] += 1;
+            id(td_p2)[11] = id(td_p1)[11];
+            id(td_p1)[11] = 0;
+            id(pc)[11] += 1;
+#   - platform: gpio
+#     id: s0_12
+#     device_class: power    
+#     pin: 
+#       number: 23
+#       mode: INPUT_PULLDOWN
+#     filters:
+#       - delayed_on: 10ms

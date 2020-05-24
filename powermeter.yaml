@@ -1,0 +1,143 @@
+esphome:
+  name: powermeter
+  platform: ESP32
+  board: nodemcu-32s
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pw
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Powermeter Fallback Hotspot"
+    password: !secret wifi_pw
+
+mqtt:
+  broker: !secret mqtt_host
+  username: !secret mqtt_user
+  password: !secret mqtt_pw
+
+web_server:
+  port: 80
+
+captive_portal:
+
+# Enable time component to reset energy at midnight
+time:
+  - platform: sntp
+    id: my_time
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+# Sensors:
+sensor:
+  - platform: total_daily_energy
+    name: "Daily Energy 01"
+    power_id: power01
+  - platform: total_daily_energy
+    name: "Daily Energy 03"
+    power_id: power03
+  - platform: total_daily_energy
+    name: "Daily Energy 04"
+    power_id: power04
+  - platform: total_daily_energy
+    name: "Daily Energy 05"
+    power_id: power05
+  - platform: total_daily_energy
+    name: "Daily Energy 06"
+    power_id: power06
+  - platform: total_daily_energy
+    name: "Daily Energy 07"
+    power_id: power07
+  - platform: total_daily_energy
+    name: "Daily Energy 08"
+    power_id: power08
+  - platform: total_daily_energy
+    name: "Daily Energy 09"
+    power_id: power09
+  - platform: total_daily_energy
+    name: "Daily Energy 10"
+    power_id: power10
+  - platform: total_daily_energy
+    name: "Daily Energy 11"
+    power_id: power11
+  # - platform: integration
+  #   name: "Total h xxx"
+  #   sensor: power01
+  #   time_unit: h
+  - platform: pulse_counter
+    id: power01
+    pin: 14
+    name: "Power Meter 01"
+    unit_of_measurement: 'kW'
+    filters:
+      - multiply: 0.06
+  - platform: pulse_counter
+    id: power03
+    pin: 36
+    name: "Power Meter 03"
+    unit_of_measurement: 'kW'
+    filters:
+      - multiply: 0.06
+  - platform: pulse_counter
+    id: power04
+    pin: 39
+    name: "Power Meter 04"
+    unit_of_measurement: 'kW'
+    filters:
+      - multiply: 0.06
+  - platform: pulse_counter
+    id: power05
+    pin: 34
+    name: "Power Meter 05"
+    unit_of_measurement: 'kW'
+    filters:
+      - multiply: 0.06
+  - platform: pulse_counter
+    id: power06
+    pin: 35
+    name: "Power Meter 06"
+    unit_of_measurement: 'kW'
+    filters:
+      - multiply: 0.06
+  - platform: pulse_counter
+    id: power07
+    pin: 32
+    name: "Power Meter 07"
+    unit_of_measurement: 'kW'
+    filters:
+      - multiply: 0.06
+  - platform: pulse_counter
+    id: power08
+    pin: 33
+    name: "Power Meter 08"
+    unit_of_measurement: 'kW'
+    filters:
+      - multiply: 0.06
+  - platform: pulse_counter
+    id: power09
+    pin: 25
+    name: "Power Meter 09"
+    unit_of_measurement: 'kW'
+    filters:
+      - multiply: 0.06
+  - platform: pulse_counter
+    id: power10
+    pin: 26
+    name: "Power Meter 10"
+    unit_of_measurement: 'kW'
+    filters:
+      - multiply: 0.06
+  - platform: pulse_counter
+    id: power11
+    pin: 27
+    name: "Power Meter 11"
+    unit_of_measurement: 'kW'
+    filters:
+      - multiply: 0.06

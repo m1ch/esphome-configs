@@ -1,0 +1,61 @@
+esphome:
+  name: weatherstation
+  platform: ESP8266
+  board: nodemcuv2
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pw
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Weatherstation Fallback Hotspot"
+    password: !secret wifi_pw
+
+captive_portal:
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+mqtt:
+  broker: !secret mqtt_host
+  username: !secret mqtt_user
+  password: !secret mqtt_pw
+
+web_server:
+  port: 80
+
+uart:
+  rx_pin: D1
+  tx_pin: D2
+  baud_rate: 9600
+
+i2c:
+  sda: D3
+  scl: D4
+  scan: True
+  id: bus_a
+
+sensor:
+  - platform: sds011
+    pm_2_5:
+      name: "Particulate Matter <2.5µm Concentration"
+    pm_10_0:
+      name: "Particulate Matter <10.0µm Concentration"
+    update_interval: 5min
+
+  - platform: bme280
+    temperature:
+      name: "BME280 Temperature"
+    pressure:
+      name: "BME280 Pressure"
+    humidity:
+      name: "BME280 Humidity"
+    address: 0x77
+    update_interval: 60s
+
