@@ -127,3 +127,14 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# ESPHOME
+pyvenv.cfg
+lib
+lib64
+include
+secrets.yaml
+bin
+.esphome 
+/*/
+!/doc
