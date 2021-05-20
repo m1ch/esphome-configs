@@ -1,16 +1,18 @@
+substitutions:
+  devicename: weatherstation
+  upper_devicename: Weatherstation
+
+
 esphome:
-  name: weatherstation
+  name: $devicename
   platform: ESP8266
   board: nodemcuv2
+  build_path: ./build/${devicename}
 
-wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_pw
-
-  # Enable fallback hotspot (captive portal) in case wifi connection fails
-  ap:
-    ssid: "Weatherstation Fallback Hotspot"
-    password: !secret wifi_pw
+packages:
+  wifi: !include common_wifi.yaml
+  network: !include ws_network.yaml
+  busses: !include ws_busses.yaml
 
 captive_portal:
 
@@ -18,44 +20,60 @@ captive_portal:
 logger:
 
 # Enable Home Assistant API
-api:
+#api:
 
 ota:
-
-mqtt:
-  broker: !secret mqtt_host
-  username: !secret mqtt_user
-  password: !secret mqtt_pw
-
-web_server:
-  port: 80
-
-uart:
-  rx_pin: D1
-  tx_pin: D2
-  baud_rate: 9600
-
-i2c:
-  sda: D3
-  scl: D4
-  scan: True
-  id: bus_a
 
 sensor:
   - platform: sds011
     pm_2_5:
-      name: "Particulate Matter <2.5µm Concentration"
+      name: "pm 25"
     pm_10_0:
-      name: "Particulate Matter <10.0µm Concentration"
+      name: "pm 10"
     update_interval: 5min
 
   - platform: bme280
     temperature:
-      name: "BME280 Temperature"
+      name: "Temperature"
+      oversampling: 16x
     pressure:
-      name: "BME280 Pressure"
+      name: "Pressure"
     humidity:
-      name: "BME280 Humidity"
-    address: 0x77
+      name: "Humidity"
+    address: 0x76
     update_interval: 60s
+
+  - platform: bh1750
+    name: "Illuminance 1"
+    address: 0x23
+    update_interval: 60s
+    
+  # - platform: tcs34725
+  #   red_channel:
+  #     name: "Red"
+  #   green_channel:
+  #     name: "Green"
+  #   blue_channel:
+  #     name: "Blue"
+  #   clear_channel:
+  #     name: "Clear"
+  #   illuminance:
+  #     name: "Illuminance 2"
+  #     filters:
+  #       - calibrate_linear:
+  #           # Map 0.0 (from sensor) to 0.0 (true value)
+  #           - 0.0 -> 0.0
+  #           # - 1.4 -> 782.8
+  #           # - 2.4 -> 1441.7
+  #           # - 5.6 -> 3751.7
+  #           - 7.9 -> 4998.3
+  #           # - 34.9 -> 29300.7
+  #           - 38.4 -> 29799.2
+  #   color_temperature:
+  #     name: "Color Temperature"
+  #   gain: 1x
+  #   integration_time: 2.4ms
+  #   address: 0x29
+  #   update_interval: 60s
+
 

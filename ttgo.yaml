@@ -1,0 +1,64 @@
+esphome:
+  name: attgo
+  platform: ESP32
+  board: esp32dev
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pw
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Attgo Fallback Hotspot"
+    password: !secret wifi_pw
+
+mqtt:
+  broker: !secret mqtt_host
+  username: !secret mqtt_user
+  password: !secret mqtt_pw
+
+web_server:
+  port: 80
+
+captive_portal:
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+# api:
+
+ota:
+
+i2c:
+  sda: 21
+  scl: 22
+  scan: True
+  id: bus_a
+
+# Sensors:
+sensor:
+  - platform: bh1750
+    name: "BH1750 Illuminance"
+    address: 0x23
+    update_interval: 60s
+    expire_after: 300s
+  - platform: tcs34725
+    red_channel:
+      name: "TCS34725 Red Channel"
+    green_channel:
+      name: "TCS34725 Green Channel"
+    blue_channel:
+      name: "TCS34725 Blue Channel"
+    clear_channel:
+      name: "TCS34725 Clear Channel"
+    illuminance:
+      name: "TCS34725 Illuminance"
+    color_temperature:
+      name: "TCS34725 Color Temperature"
+    gain: 1x
+    integration_time: 2.4ms
+    address: 0x29
+    update_interval: 60s
+
+

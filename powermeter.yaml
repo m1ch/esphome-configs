@@ -667,30 +667,42 @@ sensor:
     accuracy_decimals: 4
     expire_after: 80s
     update_interval: never
+  - platform: pulse_counter
+    pin: 14
+    name: "Energy last min 01"
+    unit_of_measurement: "Wh"
+    icon: "mdi:gauge"
+    accuracy_decimals: 0
+    expire_after: 80s
+    update_interval: 60s
+    id: s0_01
+    # slow: True
+    internal_filter: 13us
+  
   
 ###############################################################################
 binary_sensor:
 # Pins used for S0 input:
 # 14, 36, 39, 34, 35, 32, 33, 25, 26, 27
 
-  - platform: gpio
-    id: s0_01
-    device_class: power
-    pin: 
-      number: 14
-      mode: INPUT_PULLDOWN
-    filters:
-      - delayed_on: 13ms
-    internal: True
-    on_press:
-      then:
-        - lambda: |-
-            int sensor = 1;
-            id(e_count)[sensor] += 1;
-            unsigned int t_ = id(sntp_time).now().timestamp;
-            id(dt)[sensor] = t_ - id(tp)[sensor];
-            id(tp)[sensor] = t_;
-            id(pc)[sensor] += 1;
+  # - platform: gpio
+  #   id: s0_01
+  #   device_class: power
+  #   pin: 
+  #     number: 14
+  #     mode: INPUT_PULLDOWN
+  #   filters:
+  #     - delayed_on: 13ms
+  #   internal: True
+  #   on_press:
+  #     then:
+  #       - lambda: |-
+  #           int sensor = 1;
+  #           id(e_count)[sensor] += 1;
+  #           unsigned int t_ = id(sntp_time).now().timestamp;
+  #           id(dt)[sensor] = t_ - id(tp)[sensor];
+  #           id(tp)[sensor] = t_;
+  #           id(pc)[sensor] += 1;
   - platform: gpio
     id: s0_03
     device_class: power    

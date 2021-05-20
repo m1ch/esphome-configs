@@ -1,14 +1,15 @@
 esphome:
-  name: powermeter
+  name: powertest
   platform: ESP32
-  board: nodemcu-32s
+  board: esp32dev
 
 # Enable logging
 logger:
-  level: DEBUG
+  # level: INFO
+
 
 # Enable Home Assistant API
-# api:
+#api:
 
 ota:
 
@@ -22,47 +23,90 @@ wifi:
     password: !secret wifi_pw
 
 mqtt:
-  id: mqtt_client
   broker: !secret mqtt_host
   username: !secret mqtt_user
   password: !secret mqtt_pw
-  # discovery: false # Only for testpurposes
 
 captive_portal:
 
 # Enable time component to reset energy at midnight
+
 time:
   - platform: sntp
     id: sntp_time
 
-# Sensors:
+dallas:
+  - pin: 4
+    update_interval: 30s
+
 sensor:
-  # Pins used for S0 input:
-  # {2,4,32,25,27,16,17,21,22,5}
-  # 14, 36, 39, 34, 35, 32, 33, 25, 26, 27
-  - platform: pulse_counter
-    pin: 14
+  - platform: dallas
+    address: 0x84012042FD7CB428
+    name: "Temperature Water Heating"
+  - platform: dallas
+    address: 0xCA012042E6768228
+    name: "Temperature Water Fresh"
+  - platform: dallas
+    address: 0x1101204210983628
+    name: "Temperature Air Fresh"
+
+
+#                   GND ... 1  2 ... 3v3
+# Rot -Z03-IO32-Pulse01 ... 3  4 ... Pulse00-IO35-Z04-Grau
+# Blau-Z05-IO25-Pulse03 ... 5  6 ... Pulse02-IO33-Z06-Grun
+# Gelb-Z07-IO27-Pulse05 ... 7  8 ... Pulse04-IO26-Z08-Rosa
+# Viol-Z09-IO12-Pulse07 ... 9  10... Pulse06-IO14-Z10-RoBl
+# GrRo-Z11-IO09-Pulse09 ...11  12... Pulse08-IO13-Z01-Braun
+#          IO11-Pulse11 ...13  14... Pulse10-IO10
+#                   GND ...15  16... 3v3
+
+  - platform: pulse_meter
+    pin:
+      number: 13
+      # number: 35
+      mode: INPUT_PULLUP
     name: "Power Meter 01"
-    unit_of_measurement: "kW"
-    icon: "mdi:gauge"
-    accuracy_decimals: 3
-    expire_after: 80s
-    update_interval: 60s
     id: s0_01
-    hardware_pulsecounter: True
-    internal_filter: 13us
-    force_update: True
+    icon: "mdi:gauge"
+    unit_of_measurement: "kW"
+    internal_filter: 10ms
+    accuracy_decimals: 3
+    # update_interval: 60s
     filters:
       - multiply: 0.06
-  - platform: total_daily_energy
-    name: "Daily Energy 01"
-    id: energy_day_01
-    power_id: s0_01
-    unit_of_measurement: "kWh"
+    force_update: True
+    total:
+      name: "Electricity Total"
+      unit_of_measurement: "kWh"
+      accuracy_decimals: 3
+      filters:
+        - multiply: 0.001
 
+  # - platform: interrupt_pulse_counter
+  #   pin:
+  #     number: 35
+  #     mode: INPUT_PULLDOWN
+  #   name: "Power Meter 01"
+  #   unit_of_measurement: "kW"
+  #   icon: "mdi:gauge"
+  #   accuracy_decimals: 3
+  #   expire_after: 80s
+  #   update_interval: 60s
+  #   id: s0_01
+  #   internal_filter: 1ms
+  #   force_update: True
+  #   filters:
+  #     - multiply: 0.06
+  # - platform: total_daily_energy
+  #   name: "Daily Energy 01"
+  #   id: energy_day_01
+  #   power_id: s0_01
+  #   unit_of_measurement: "kWh"
 
-  - platform: pulse_counter
-    pin: 36
+  - platform: interrupt_pulse_counter
+    pin:
+      number: 32
+      mode: INPUT_PULLDOWN
     name: "Power Meter 03"
     unit_of_measurement: "kW"
     icon: "mdi:gauge"
@@ -70,7 +114,6 @@ sensor:
     expire_after: 80s
     update_interval: 60s
     id: s0_03
-    hardware_pulsecounter: True
     internal_filter: 13us
     force_update: True
     filters:
@@ -80,9 +123,13 @@ sensor:
     id: energy_day_03
     power_id: s0_03
     unit_of_measurement: "kWh"
+    accuracy_decimals: 3
 
-  - platform: pulse_counter
-    pin: 39
+
+  - platform: interrupt_pulse_counter
+    pin: 
+      number: 35
+      mode: INPUT_PULLDOWN
     name: "Power Meter 04"
     unit_of_measurement: "kW"
     icon: "mdi:gauge"
@@ -90,7 +137,6 @@ sensor:
     expire_after: 80s
     update_interval: 60s
     id: s0_04
-    hardware_pulsecounter: True
     internal_filter: 13us
     force_update: True
     filters:
@@ -100,9 +146,13 @@ sensor:
     id: energy_day_04
     power_id: s0_04
     unit_of_measurement: "kWh"
+    accuracy_decimals: 3
 
-  - platform: pulse_counter
-    pin: 34
+
+  - platform: interrupt_pulse_counter
+    pin: 
+      number: 25
+      mode: INPUT_PULLDOWN
     name: "Power Meter 05"
     unit_of_measurement: "kW"
     icon: "mdi:gauge"
@@ -110,7 +160,6 @@ sensor:
     expire_after: 80s
     update_interval: 60s
     id: s0_05
-    hardware_pulsecounter: True
     internal_filter: 13us
     force_update: True
     filters:
@@ -120,9 +169,13 @@ sensor:
     id: energy_day_05
     power_id: s0_05
     unit_of_measurement: "kWh"
+    accuracy_decimals: 3
 
-  - platform: pulse_counter
-    pin: 35
+
+  - platform: interrupt_pulse_counter
+    pin:
+      number: 33
+      mode: INPUT_PULLDOWN
     name: "Power Meter 06"
     unit_of_measurement: "kW"
     icon: "mdi:gauge"
@@ -130,7 +183,6 @@ sensor:
     expire_after: 80s
     update_interval: 60s
     id: s0_06
-    hardware_pulsecounter: True
     internal_filter: 13us
     force_update: True
     filters:
@@ -140,9 +192,12 @@ sensor:
     id: energy_day_06
     power_id: s0_06
     unit_of_measurement: "kWh"
+    accuracy_decimals: 3
 
-  - platform: pulse_counter
-    pin: 32
+  - platform: interrupt_pulse_counter
+    pin: 
+      number: 27
+      mode: INPUT_PULLDOWN
     name: "Power Meter 07"
     unit_of_measurement: "kW"
     icon: "mdi:gauge"
@@ -150,7 +205,6 @@ sensor:
     expire_after: 80s
     update_interval: 60s
     id: s0_07
-    hardware_pulsecounter: True
     internal_filter: 13us
     force_update: True
     filters:
@@ -160,9 +214,13 @@ sensor:
     id: energy_day_07
     power_id: s0_07
     unit_of_measurement: "kWh"
+    accuracy_decimals: 3
 
-  - platform: pulse_counter
-    pin: 33
+
+  - platform: interrupt_pulse_counter
+    pin: 
+      number: 26
+      mode: INPUT_PULLDOWN
     name: "Power Meter 08"
     unit_of_measurement: "kW"
     icon: "mdi:gauge"
@@ -170,19 +228,22 @@ sensor:
     expire_after: 80s
     update_interval: 60s
     id: s0_08
-    hardware_pulsecounter: True
     internal_filter: 13us
     force_update: True
     filters:
-      - multiply: 0.06
+      - multiply: 0.0
   - platform: total_daily_energy
     name: "Daily Energy 08"
     id: energy_day_08
     power_id: s0_08
     unit_of_measurement: "kWh"
+    accuracy_decimals: 3
 
-  - platform: pulse_counter
-    pin: 25
+
+  - platform: interrupt_pulse_counter
+    pin: 
+      number: 12
+      mode: INPUT_PULLDOWN
     name: "Power Meter 09"
     unit_of_measurement: "kW"
     icon: "mdi:gauge"
@@ -190,7 +251,6 @@ sensor:
     expire_after: 80s
     update_interval: 60s
     id: s0_09
-    hardware_pulsecounter: True
     internal_filter: 13us
     force_update: True
     filters:
@@ -200,9 +260,12 @@ sensor:
     id: energy_day_09
     power_id: s0_09
     unit_of_measurement: "kWh"
+    accuracy_decimals: 3
 
-  - platform: pulse_counter
-    pin: 26
+  - platform: interrupt_pulse_counter
+    pin: 
+      number: 14
+      mode: INPUT_PULLDOWN
     name: "Power Meter 10"
     unit_of_measurement: "kW"
     icon: "mdi:gauge"
@@ -210,7 +273,6 @@ sensor:
     expire_after: 80s
     update_interval: 60s
     id: s0_10
-    hardware_pulsecounter: False
     internal_filter: 13us
     force_update: True
     filters:
@@ -221,8 +283,11 @@ sensor:
     power_id: s0_10
     unit_of_measurement: "kWh"
 
-  - platform: pulse_counter
-    pin: 27
+
+  - platform: interrupt_pulse_counter
+    pin: 
+      number: 9
+      mode: INPUT_PULLDOWN
     name: "Power Meter 11"
     unit_of_measurement: "kW"
     icon: "mdi:gauge"
@@ -230,7 +295,6 @@ sensor:
     expire_after: 80s
     update_interval: 60s
     id: s0_11
-    hardware_pulsecounter: False
     internal_filter: 13us
     force_update: True
     filters:
@@ -240,3 +304,27 @@ sensor:
     id: energy_day_11
     power_id: s0_11
     unit_of_measurement: "kWh"
+    accuracy_decimals: 3
+
+  # - platform: pulse_counter
+  #   pin: 
+  #     number: 35
+  #     mode: INPUT_PULLDOWN
+  #   name: "PC0"
+  # - platform: pulse_counter
+  #   pin: 
+  #     number: 32
+  #     mode: INPUT_PULLDOWN
+  #   name: "PC1"
+  # - platform: pulse_counter
+  #   pin: 
+  #     number: 33
+  #     mode: INPUT_PULLDOWN
+  #   name: "PC2"
+  # - platform: pulse_counter
+  #   pin: 
+  #     number: 25 
+  #     mode: INPUT_PULLDOWN
+  #   name: "PC3"
+
+
