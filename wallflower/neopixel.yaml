@@ -1,0 +1,174 @@
+globals:
+  - id: neopixa_12h_led
+    type: const uint8_t
+    initial_value: ${neopixa_12h_led}
+  - id: neopixa_num_leds
+    type: const uint8_t
+    initial_value: ${neopixa_num_leds}
+  - id: neopixel_effect_color
+    type: Color
+    initial_value: Color::BLACK  
+  - id: neopixel_effect_running
+    type: boolean
+    initial_value: "false"
+
+light:
+  - platform: neopixelbus
+    id: rgb_led
+    name: "${devicename_upper} NeoPixel Light"
+    type: GRB
+    variant: WS2812
+    pin: $neopixa_pin
+    num_leds: $neopixa_num_leds
+    # color_correct: [90%, 90%, 90%]
+    default_transition_length: 20ms
+    restore_mode: ALWAYS_OFF
+    on_turn_off:
+      - lambda: |-
+          id(neopixel_effect_running) = false;
+    effects:
+      - addressable_rainbow:
+          name: "Rainbow Spinner"
+          speed: 8
+          width: "${neopixa_num_leds}"
+      - addressable_rainbow:
+          name: "Rainbow Fader"
+          speed: 3
+          width: "${neopixa_num_leds}"
+      - random:
+          name: "Random Slow"
+          transition_length: 8s
+          update_interval: 12s
+      - addressable_lambda:
+          name: "inputs"
+          update_interval: 25ms
+          lambda: |-
+            inputEffects( &it );
+
+      - addressable_lambda:
+          name: "Rotate"
+          update_interval: 20ms
+          lambda: |-
+            ledRotate();
+            return;
+            static boolean is_running = false;
+            static uint32_t cnt = 0;
+            static Color ring_colors[${neopixa_num_leds}];
+            static boolean rotate_right = false;
+            static boolean rotate_on = false;
+            static int rot_enc1_old = 0;
+            
+            if ( rot_enc1_old < int(id(rot_enc1).state) ){
+              rotate_right = true;
+              rotate_on = true;
+            }
+            else if ( rot_enc1_old > int(id(rot_enc1).state) ){
+              rotate_right = false;
+              rotate_on = true;
+            }
+            else {
+              rotate_on = false;
+            }
+            rot_enc1_old = int(id(rot_enc1).state);
+            
+            if ( !id(neopixel_effect_running)){
+              id(neopixel_effect_running) = true;
+              it.all() = Color::BLACK;
+              it[calcLedNumber(${neopixa_12h_led}-1)] = id(neopixel_effect_color)*0.8;
+              it[${neopixa_12h_led}] = id(neopixel_effect_color);
+              it[calcLedNumber(${neopixa_12h_led}+1)] = id(neopixel_effect_color)*0.8;
+              return;
+            }
+
+            if ( !rotate_on ){
+              return;
+            }
+
+            Color new_color;
+
+            if (rotate_right){
+              new_color = it[0].get();
+              for (int i = 0; i < it.size() - 1; i++) {
+                it[i] = it[i + 1].get();
+              }
+              it[it.size() - 1] = new_color;
+            }
+            else {
+              new_color = it[it.size() - 1].get();
+              for (int i = it.size() - 1; i > 0; i--) {
+                it[i] = it[i - 1].get();
+              }
+              it[0] = new_color;
+            }
+      # - addressable_lambda:
+      #     name: "RisingLevel"
+      #     update_interval: 50ms
+      #     lambda: |-
+      #       ledRisingLevel( &it );
+          # static boolean is_running = false;
+          # static uint32_t cnt = 0;
+          # static Color ring_colors[${neopixa_num_leds}];
+          # static boolean rotate_right = false;
+          # static boolean rotate_on = false;
+          # static int rot_enc1_old = 0;
+          # static uint8_t led_12h = ${neopixa_12h_led};
+          # static uint8_t led_6h  = calcLedNumber(${neopixa_12h_led} + ${neopixa_num_leds}/2, ${neopixa_num_leds});
+          
+
+      
+      - addressable_lambda:
+          name: "My Custom Effect"
+          update_interval: 16ms
+          lambda: |-
+            // Static variables keep their value even when
+            // stopping and starting the effect again
+            static uint16_t progress = 0;
+
+            // normal variables lost their value after each
+            // execution - basically after each update_interval
+            uint16_t changes = 0;
+
+            // To reset static when stopping and starting the effect
+            // again you can use the initial_run variables
+            // static boolean initial_run = true;
+            if (initial_run) {
+              progress = 0;
+              it.all() = Color::BLACK;
+              // optionally do a return so nothing happens until the next update_interval
+              // initial_run = false;
+              return;
+            }
+            // it.size() - Number of LEDs
+            // it[num] - Access the LED at index num.
+            // Set the LED at num to the given r, g, b values
+            // it[num] = Color(r, g, b);
+            // Get the color at index num (Color instance)
+            // it[num].get();
+
+            // Example: Simple color wipe
+            for (int i = it.size() - 1; i > 0; i--) {
+              it[i] = it[i - 1].get();
+            }
+            it[0] = Color::random_color();
+
+            // Bonus: use .range() and .all() to set many LEDs without having to write a loop.
+            // it.range(0, 50) = Color::BLACK;
+            // it.all().fade_to_black(10);
+    
+  - platform: partition
+    name: ${devicename_upper} led_left
+    id: led_left
+    default_transition_length: 0s
+    segments:
+      - id: rgb_led
+        from: 8
+        to: 15
+  - platform: partition
+    name: ${devicename_upper} led_right
+    id: led_right
+    default_transition_length: 0s
+    segments:
+      - id: rgb_led
+        from: 0
+        to: 7
+        

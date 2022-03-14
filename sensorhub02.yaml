@@ -1,0 +1,166 @@
+# Inspired by: 
+#https://github.com/klaasnicolaas/home-assistant-glow/home_assistant_glow.yaml
+
+substitutions:
+  devicename: sensorhub02
+  devicename_upper: Sensorhub02
+
+
+#                   GND ... 1  2 ... 3v3
+# Rot -Z03-IO32-Pulse01 ... 3  4 ... Pulse00-IO35-Z04-Grau
+
+
+# Blau-Z05-IO25-Pulse03 ... 5  6 ... Pulse02-IO33-Z06-Grun
+# Gelb-Z07-IO27-Pulse05 ... 7  8 ... Pulse04-IO26-Z08-Rosa
+# Viol-Z09-IO12-Pulse07 ... 9  10... Pulse06-IO14-Z10-RoBl
+# GrRo-Z11-IO36-Pulse09 ...11  12... Pulse08-IO13-Z01-Braun
+
+
+#          IO34-Pulse11 ...13  14... Pulse10-IO39
+#                   GND ...15  16... 3v3
+
+# 00 - Backrohr
+  pm_00: "Power Consumption Server"
+  pm_tot_00: "Total Energy Server"
+  pm_pin_00: "34"
+# 01 - Geschirrspühler
+  # pm_01: "Power Consumption GSP"
+  # pm_tot_01: "Total Energy GSP"
+  # pm_pin_01: "39"
+
+  pulse_timeout: "2 min"
+  pulse_filter: 200ms
+
+esphome:
+  name: ${devicename}
+  build_path: ./build/${devicename}
+  platform: ESP32
+  board: esp32dev
+
+# Enable logging
+logger:
+  level: WARN
+
+
+# Enable Home Assistant API
+#api:
+
+ota:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pw
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "${devicename_upper} Fallback Hotspot"
+    password: !secret wifi_pw
+
+mqtt:
+  broker: !secret mqtt_host
+  username: !secret mqtt_user
+  password: !secret mqtt_pw
+  discovery: false # Only for testpurposes
+
+captive_portal:
+
+# Enable time component to reset energy at midnight
+time:
+  - platform: sntp
+    id: sntp_time
+
+button:
+  - platform: restart
+    name: "${devicename_upper} Restart"
+  - platform: template
+    name: "${devicename_upper} Reset Total Energy"
+    id: button_reset_total
+    on_press:
+      - pulse_meter.set_total_pulses:
+          id: pm_00
+          value: 0
+
+dallas:
+  - pin: 4 #22
+    update_interval: 30s
+
+text_sensor:
+  - platform: version
+    hide_timestamp: true
+    name: '${devicename_upper} ESPHome Version'
+  - platform: template
+    name: ${devicename_upper} Uptime
+    id: uptime_human
+    icon: mdi:clock-start
+  - platform: wifi_info
+    ip_address:
+      name: '${devicename_upper} IP Address'
+      icon: mdi:wifi
+    ssid:
+      name: '${devicename_upper} Connected SSID'
+      icon: mdi:wifi-strength-2
+
+sensor:
+  - platform: wifi_signal
+    name: ${devicename_upper} WiFi Signal
+    update_interval: 60s
+
+  - platform: uptime
+    name: ${devicename_upper} Uptime Sec
+    id: uptime_sensor
+    update_interval: 60s
+    on_raw_value:
+      then:
+        - text_sensor.template.publish:
+            id: uptime_human
+            state: !lambda |-
+              int seconds = round(id(uptime_sensor).raw_state);
+              int days = seconds / (24 * 3600);
+              seconds = seconds % (24 * 3600);
+              int hours = seconds / 3600;
+              seconds = seconds % 3600;
+              int minutes = seconds /  60;
+              seconds = seconds % 60;
+              return (
+                (days ? to_string(days) + "d " : "") +
+                (hours ? to_string(hours) + "h " : "") +
+                (minutes ? to_string(minutes) + "m " : "") +
+                (to_string(seconds) + "s")
+              ).c_str();
+
+  # - platform: dallas
+  #   address: 0x84012042FD7CB428
+  #   name: "Temperature Water Heating"
+  # - platform: dallas
+  #   address: 0xCA012042E6768228
+  #   name: "Temperature Water Fresh"
+  # - platform: dallas
+  #   address: 0x1101204210983628
+  #   name: "Temperature Air Fresh"
+
+  - platform: pulse_meter
+    pin:
+      number: ${pm_pin_00}
+  #     mode: INPUT_PULLUP
+    name: ${pm_00}
+    id: pm_00
+    icon: "mdi:flash-outline"
+    unit_of_measurement: "kW"
+    state_class: measurement
+    device_class: power
+    internal_filter: ${pulse_filter}
+    accuracy_decimals: 3
+    timeout: ${pulse_timeout}
+    filters:
+      - multiply: 0.06
+    force_update: True
+    total:
+      name: ${pm_tot_00}
+      unit_of_measurement: "kWh"
+      icon: mdi:circle-slice-3
+      state_class: total_increasing
+      device_class: energy
+      accuracy_decimals: 3
+      force_update: True
+      filters:
+        - multiply: 0.001

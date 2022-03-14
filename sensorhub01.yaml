@@ -1,0 +1,711 @@
+# Inspired by: 
+#https://github.com/klaasnicolaas/home-assistant-glow/home_assistant_glow.yaml
+
+substitutions:
+  devicename: sensorhub01
+  devicename_upper: Sensorhub01
+
+
+#                   GND ... 1  2 ... 3v3
+# Rot -Z03-IO32-Pulse01 ... 3  4 ... Pulse00-IO35-Z04-Grau
+# Blau-Z05-IO25-Pulse03 ... 5  6 ... Pulse02-IO33-Z06-Grun
+# Gelb-Z07-IO27-Pulse05 ... 7  8 ... Pulse04-IO26-Z08-Rosa
+# Viol-Z09-IO12-Pulse07 ... 9  10... Pulse06-IO14-Z10-RoBl
+# GrRo-Z11-IO36-Pulse09 ...11  12... Pulse08-IO13-Z01-Braun
+#          IO34-Pulse11 ...13  14... Pulse10-IO39
+#                   GND ...15  16... 3v3
+
+# 00 - Backrohr
+  pm_00: "Power Consumption Backrohr"
+  pm_tot_00: "Total Energy Backrohr"
+  pm_pin_00: "35"
+# 01 - Geschirrspühler
+  pm_01: "Power Consumption GSP"
+  pm_tot_01: "Total Energy GSP"
+  pm_pin_01: "32"
+# 02 - Waschmaschiene
+  pm_02: "Power Consumption WMS"
+  pm_tot_02: "Total Energy WMS"
+  pm_pin_02: "33"
+# 03 - Dampfgarrer
+  pm_03: "Power Consumption Dampfgarrer"
+  pm_tot_03: "Total Energy Dampfgarrer"
+  pm_pin_03: "25"
+# 04 - Wohnzimmer
+  pm_04: "Power Consumption Wohnzimmer"
+  pm_tot_04: "Total Energy Wohnzimmer"
+  pm_pin_04: "26"
+# 05 - Küche
+  pm_05: "Power Consumption Kueche"
+  pm_tot_05: "Total Energy Kueche"
+  pm_pin_05: "27"
+# 06 - Gang
+  pm_06: "Power Consumption Gang"
+  pm_tot_06: "Total Energy Gang"
+  pm_pin_06: "14" 
+# 07 - Schlafzimmer
+  pm_07: "Power Consumption Zimmer"
+  pm_tot_07: "Total Energy Zimmer"
+  pm_pin_07: "12"
+# 08 - Gesammt
+  pm_08: "Power Consumption ALL"
+  pm_tot_08: "Total Energy ALL"
+  pm_pin_08: "13"
+# 09 - Keller
+  pm_09: "Power Consumption Keller"
+  pm_tot_09: "Total Energy Keller"
+  pm_pin_09: "36"
+# 10 - NN
+  pm_10: "Power Consumption 10"
+  pm_tot_10: "Total Energy 10"
+  pm_pin_10: "39"
+# 11 - NN
+  pm_11: "Power Consumption 11"
+  pm_tot_11: "Total Energy 11"
+  pm_pin_11: "34"
+
+  pulse_timeout: "2 min"
+  pulse_filter: 200ms
+
+esphome:
+  name: ${devicename}
+  build_path: ./build/${devicename}
+  platform: ESP32
+  board: esp32dev
+
+# Enable logging
+logger:
+  level: WARN
+
+
+# Enable Home Assistant API
+#api:
+
+ota:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pw
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Powermeter Fallback Hotspot"
+    password: !secret wifi_pw
+
+mqtt:
+  broker: !secret mqtt_host
+  username: !secret mqtt_user
+  password: !secret mqtt_pw
+  # discovery: false # Only for testpurposes
+
+captive_portal:
+
+# Enable time component to reset energy at midnight
+
+time:
+  - platform: sntp
+    id: sntp_time
+
+button:
+  - platform: restart
+    name: "${devicename_upper} Restart"
+  - platform: template
+    name: "${devicename_upper} Reset Total Energy"
+    id: button_reset_total
+    on_press:
+      - pulse_meter.set_total_pulses:
+          id: pm_00
+          value: 0
+      - pulse_meter.set_total_pulses:
+          id: pm_01
+          value: 0
+      - pulse_meter.set_total_pulses:
+          id: pm_02
+          value: 0
+      - pulse_meter.set_total_pulses:
+          id: pm_03
+          value: 0
+      - pulse_meter.set_total_pulses:
+          id: pm_04
+          value: 0
+      - pulse_meter.set_total_pulses:
+          id: pm_05
+          value: 0
+      - pulse_meter.set_total_pulses:
+          id: pm_06
+          value: 0
+      - pulse_meter.set_total_pulses:
+          id: pm_07
+          value: 0
+      - pulse_meter.set_total_pulses:
+          id: pm_08
+          value: 0
+      - pulse_meter.set_total_pulses:
+          id: pm_09
+          value: 0
+
+dallas:
+  - pin: 4 #22
+    update_interval: 30s
+
+text_sensor:
+  - platform: version
+    hide_timestamp: true
+    name: '${devicename_upper} ESPHome Version'
+  - platform: template
+    name: ${devicename_upper} Uptime
+    id: uptime_human
+    icon: mdi:clock-start
+  - platform: wifi_info
+    ip_address:
+      name: '${devicename_upper} IP Address'
+      icon: mdi:wifi
+    ssid:
+      name: '${devicename_upper} Connected SSID'
+      icon: mdi:wifi-strength-2
+
+sensor:
+  - platform: wifi_signal
+    name: ${devicename_upper} WiFi Signal
+    update_interval: 60s
+
+  - platform: uptime
+    name: ${devicename_upper} Uptime Sec
+    id: uptime_sensor
+    update_interval: 60s
+    on_raw_value:
+      then:
+        - text_sensor.template.publish:
+            id: uptime_human
+            state: !lambda |-
+              int seconds = round(id(uptime_sensor).raw_state);
+              int days = seconds / (24 * 3600);
+              seconds = seconds % (24 * 3600);
+              int hours = seconds / 3600;
+              seconds = seconds % 3600;
+              int minutes = seconds /  60;
+              seconds = seconds % 60;
+              return (
+                (days ? to_string(days) + "d " : "") +
+                (hours ? to_string(hours) + "h " : "") +
+                (minutes ? to_string(minutes) + "m " : "") +
+                (to_string(seconds) + "s")
+              ).c_str();
+
+  - platform: dallas
+    address: 0x84012042FD7CB428
+    name: "Temperature Water Heating"
+  - platform: dallas
+    address: 0xCA012042E6768228
+    name: "Temperature Water Fresh"
+  - platform: dallas
+    address: 0x1101204210983628
+    name: "Temperature Air Fresh"
+
+  - platform: pulse_meter
+    pin:
+      number: ${pm_pin_00}
+  #     mode: INPUT_PULLUP
+    name: ${pm_00}
+    id: pm_00
+    icon: "mdi:flash-outline"
+    unit_of_measurement: "kW"
+    state_class: measurement
+    device_class: power
+    internal_filter: ${pulse_filter}
+    accuracy_decimals: 3
+    timeout: ${pulse_timeout}
+    filters:
+      - multiply: 0.06
+    force_update: True
+    total:
+      name: ${pm_tot_00}
+      unit_of_measurement: "kWh"
+      icon: mdi:circle-slice-3
+      state_class: total_increasing
+      device_class: energy
+      accuracy_decimals: 3
+      filters:
+        - multiply: 0.001
+
+  - platform: pulse_meter
+    pin:
+      number: ${pm_pin_01}
+  #     mode: INPUT_PULLUP
+    name: ${pm_01}
+    id: pm_01
+    icon: "mdi:flash-outline"
+    unit_of_measurement: "kW"
+    state_class: measurement
+    device_class: power
+    internal_filter: ${pulse_filter}
+    accuracy_decimals: 3
+    timeout: ${pulse_timeout}
+    filters:
+      - multiply: 0.06
+    force_update: True
+    total:
+      name: ${pm_tot_01}
+      unit_of_measurement: "kWh"
+      icon: mdi:circle-slice-3
+      state_class: total_increasing
+      device_class: energy
+      accuracy_decimals: 3
+      filters:
+        - multiply: 0.001
+
+  - platform: pulse_meter
+    pin:
+      number: ${pm_pin_02}
+  #     mode: INPUT_PULLUP
+    name: ${pm_02}
+    id: pm_02
+    icon: "mdi:flash-outline"
+    unit_of_measurement: "kW"
+    state_class: measurement
+    device_class: power
+    internal_filter: ${pulse_filter}
+    accuracy_decimals: 3
+    timeout: ${pulse_timeout}
+    filters:
+      - multiply: 0.06
+    force_update: True
+    total:
+      name: ${pm_tot_02}
+      unit_of_measurement: "kWh"
+      icon: mdi:circle-slice-3
+      state_class: total_increasing
+      device_class: energy
+      accuracy_decimals: 3
+      filters:
+        - multiply: 0.001
+
+  - platform: pulse_meter
+    pin:
+      number: ${pm_pin_03}
+  #     mode: INPUT_PULLUP
+    name: ${pm_03}
+    id: pm_03
+    icon: "mdi:flash-outline"
+    unit_of_measurement: "kW"
+    state_class: measurement
+    device_class: power
+    internal_filter: ${pulse_filter}
+    accuracy_decimals: 3
+    timeout: ${pulse_timeout}
+    filters:
+      - multiply: 0.06
+    force_update: True
+    total:
+      name: ${pm_tot_03}
+      unit_of_measurement: "kWh"
+      icon: mdi:circle-slice-3
+      state_class: total_increasing
+      device_class: energy
+      accuracy_decimals: 3
+      filters:
+        - multiply: 0.001
+
+  - platform: pulse_meter
+    pin:
+      number: ${pm_pin_04}
+  #     mode: INPUT_PULLUP
+    name: ${pm_04}
+    id: pm_04
+    icon: "mdi:flash-outline"
+    unit_of_measurement: "kW"
+    state_class: measurement
+    device_class: power
+    internal_filter: ${pulse_filter}
+    accuracy_decimals: 3
+    timeout: ${pulse_timeout}
+    filters:
+      - multiply: 0.06
+    force_update: True
+    total:
+      name: ${pm_tot_04}
+      unit_of_measurement: "kWh"
+      icon: mdi:circle-slice-3
+      state_class: total_increasing
+      device_class: energy
+      accuracy_decimals: 3
+      filters:
+        - multiply: 0.001
+
+  - platform: pulse_meter
+    pin:
+      number: ${pm_pin_05}
+  #     mode: INPUT_PULLUP
+    name: ${pm_05}
+    id: pm_05
+    icon: "mdi:flash-outline"
+    unit_of_measurement: "kW"
+    state_class: measurement
+    device_class: power
+    internal_filter: ${pulse_filter}
+    accuracy_decimals: 3
+    timeout: ${pulse_timeout}
+    filters:
+      - multiply: 0.06
+    force_update: True
+    total:
+      name: ${pm_tot_05}
+      unit_of_measurement: "kWh"
+      icon: mdi:circle-slice-3
+      state_class: total_increasing
+      device_class: energy
+      accuracy_decimals: 3
+      filters:
+        - multiply: 0.001
+
+  - platform: pulse_meter
+    pin:
+      number: ${pm_pin_06}
+  #     mode: INPUT_PULLUP
+    name: ${pm_06}
+    id: pm_06
+    icon: "mdi:flash-outline"
+    unit_of_measurement: "kW"
+    state_class: measurement
+    device_class: power
+    internal_filter: ${pulse_filter}
+    accuracy_decimals: 3
+    timeout: ${pulse_timeout}
+    filters:
+      - multiply: 0.06
+    force_update: True
+    total:
+      name: ${pm_tot_06}
+      unit_of_measurement: "kWh"
+      icon: mdi:circle-slice-3
+      state_class: total_increasing
+      device_class: energy
+      accuracy_decimals: 3
+      filters:
+        - multiply: 0.001
+
+  - platform: pulse_meter
+    pin:
+      number: ${pm_pin_07}
+  #     mode: INPUT_PULLUP
+    name: ${pm_07}
+    id: pm_07
+    icon: "mdi:flash-outline"
+    unit_of_measurement: "kW"
+    state_class: measurement
+    device_class: power
+    internal_filter: ${pulse_filter}
+    accuracy_decimals: 3
+    timeout: ${pulse_timeout}
+    filters:
+      - multiply: 0.06
+    force_update: True
+    total:
+      name: ${pm_tot_07}
+      unit_of_measurement: "kWh"
+      icon: mdi:circle-slice-3
+      state_class: total_increasing
+      device_class: energy
+      accuracy_decimals: 3
+      filters:
+        - multiply: 0.001
+
+  - platform: pulse_meter
+    pin:
+      number: ${pm_pin_08}
+  #     mode: INPUT_PULLUP
+    name: ${pm_08}
+    id: pm_08
+    icon: "mdi:flash-outline"
+    unit_of_measurement: "kW"
+    state_class: measurement
+    device_class: power
+    internal_filter: ${pulse_filter}
+    accuracy_decimals: 3
+    timeout: ${pulse_timeout}
+    filters:
+      - multiply: 0.06
+    force_update: True
+    total:
+      name: ${pm_tot_08}
+      unit_of_measurement: "kWh"
+      icon: mdi:circle-slice-3
+      state_class: total_increasing
+      device_class: energy
+      accuracy_decimals: 3
+      # force_update: True
+      filters:
+        - multiply: 0.001
+
+  - platform: pulse_meter
+    pin:
+      number: ${pm_pin_09}
+  #     mode: INPUT_PULLUP
+    name: ${pm_09}
+    id: pm_09
+    icon: "mdi:flash-outline"
+    unit_of_measurement: "kW"
+    state_class: measurement
+    device_class: power
+    internal_filter: ${pulse_filter}
+    accuracy_decimals: 3
+    timeout: ${pulse_timeout}
+    filters:
+      - multiply: 0.06
+    force_update: True
+    total:
+      name: ${pm_tot_09}
+      unit_of_measurement: "kWh"
+      icon: mdi:circle-slice-3
+      state_class: total_increasing
+      device_class: energy
+      accuracy_decimals: 3
+      filters:
+        - multiply: 0.001
+
+  # # - platform: interrupt_pulse_counter
+  # #   pin:
+  # #     number: 35
+  # #     mode: INPUT_PULLDOWN
+  # #   name: "Power Meter 01"
+  # #   unit_of_measurement: "kW"
+  # #   icon: "mdi:gauge"
+  # #   accuracy_decimals: 3
+  # #   expire_after: 80s
+  # #   update_interval: 60s
+  # #   id: s0_01
+  # #   internal_filter: 1ms
+  # #   force_update: True
+  # #   filters:
+  # #     - multiply: 0.06
+  # # - platform: total_daily_energy
+  # #   name: "Daily Energy 01"
+  # #   id: energy_day_01
+  # #   power_id: s0_01
+  # #   unit_of_measurement: "kWh"
+
+  # - platform: interrupt_pulse_counter
+  #   pin:
+  #     number: 32
+  #     mode: INPUT_PULLDOWN
+  #   name: "Power Meter 03"
+  #   unit_of_measurement: "kW"
+  #   icon: "mdi:gauge"
+  #   accuracy_decimals: 3
+  #   expire_after: 80s
+  #   update_interval: 60s
+  #   id: s0_03
+  #   internal_filter: 13us
+  #   force_update: True
+  #   filters:
+  #     - multiply: 0.06
+  # - platform: total_daily_energy
+  #   name: "Daily Energy 03"
+  #   id: energy_day_03
+  #   power_id: s0_03
+  #   unit_of_measurement: "kWh"
+  #   accuracy_decimals: 3
+
+
+  # - platform: interrupt_pulse_counter
+  #   pin: 
+  #     number: 35
+  #     mode: INPUT_PULLDOWN
+  #   name: "Power Meter 04"
+  #   unit_of_measurement: "kW"
+  #   icon: "mdi:gauge"
+  #   accuracy_decimals: 3
+  #   expire_after: 80s
+  #   update_interval: 60s
+  #   id: s0_04
+  #   internal_filter: 13us
+  #   force_update: True
+  #   filters:
+  #     - multiply: 0.06
+  # - platform: total_daily_energy
+  #   name: "Daily Energy 04"
+  #   id: energy_day_04
+  #   power_id: s0_04
+  #   unit_of_measurement: "kWh"
+  #   accuracy_decimals: 3
+
+
+  # - platform: interrupt_pulse_counter
+  #   pin: 
+  #     number: 25
+  #     mode: INPUT_PULLDOWN
+  #   name: "Power Meter 05"
+  #   unit_of_measurement: "kW"
+  #   icon: "mdi:gauge"
+  #   accuracy_decimals: 3
+  #   expire_after: 80s
+  #   update_interval: 60s
+  #   id: s0_05
+  #   internal_filter: 13us
+  #   force_update: True
+  #   filters:
+  #     - multiply: 0.06
+  # - platform: total_daily_energy
+  #   name: "Daily Energy 05"
+  #   id: energy_day_05
+  #   power_id: s0_05
+  #   unit_of_measurement: "kWh"
+  #   accuracy_decimals: 3
+
+
+  # - platform: interrupt_pulse_counter
+  #   pin:
+  #     number: 33
+  #     mode: INPUT_PULLDOWN
+  #   name: "Power Meter 06"
+  #   unit_of_measurement: "kW"
+  #   icon: "mdi:gauge"
+  #   accuracy_decimals: 3
+  #   expire_after: 80s
+  #   update_interval: 60s
+  #   id: s0_06
+  #   internal_filter: 13us
+  #   force_update: True
+  #   filters:
+  #     - multiply: 0.06
+  # - platform: total_daily_energy
+  #   name: "Daily Energy 06"
+  #   id: energy_day_06
+  #   power_id: s0_06
+  #   unit_of_measurement: "kWh"
+  #   accuracy_decimals: 3
+
+  # - platform: interrupt_pulse_counter
+  #   pin: 
+  #     number: 27
+  #     mode: INPUT_PULLDOWN
+  #   name: "Power Meter 07"
+  #   unit_of_measurement: "kW"
+  #   icon: "mdi:gauge"
+  #   accuracy_decimals: 3
+  #   expire_after: 80s
+  #   update_interval: 60s
+  #   id: s0_07
+  #   internal_filter: 13us
+  #   force_update: True
+  #   filters:
+  #     - multiply: 0.06
+  # - platform: total_daily_energy
+  #   name: "Daily Energy 07"
+  #   id: energy_day_07
+  #   power_id: s0_07
+  #   unit_of_measurement: "kWh"
+  #   accuracy_decimals: 3
+
+
+  # - platform: interrupt_pulse_counter
+  #   pin: 
+  #     number: 26
+  #     mode: INPUT_PULLDOWN
+  #   name: "Power Meter 08"
+  #   unit_of_measurement: "kW"
+  #   icon: "mdi:gauge"
+  #   accuracy_decimals: 3
+  #   expire_after: 80s
+  #   update_interval: 60s
+  #   id: s0_08
+  #   internal_filter: 13us
+  #   force_update: True
+  #   filters:
+  #     - multiply: 0.0
+  # - platform: total_daily_energy
+  #   name: "Daily Energy 08"
+  #   id: energy_day_08
+  #   power_id: s0_08
+  #   unit_of_measurement: "kWh"
+  #   accuracy_decimals: 3
+
+
+  # - platform: interrupt_pulse_counter
+  #   pin: 
+  #     number: 12
+  #     mode: INPUT_PULLDOWN
+  #   name: "Power Meter 09"
+  #   unit_of_measurement: "kW"
+  #   icon: "mdi:gauge"
+  #   accuracy_decimals: 3
+  #   expire_after: 80s
+  #   update_interval: 60s
+  #   id: s0_09
+  #   internal_filter: 13us
+  #   force_update: True
+  #   filters:
+  #     - multiply: 0.06
+  # - platform: total_daily_energy
+  #   name: "Daily Energy 09"
+  #   id: energy_day_09
+  #   power_id: s0_09
+  #   unit_of_measurement: "kWh"
+  #   accuracy_decimals: 3
+
+  # - platform: interrupt_pulse_counter
+  #   pin: 
+  #     number: 14
+  #     mode: INPUT_PULLDOWN
+  #   name: "Power Meter 10"
+  #   unit_of_measurement: "kW"
+  #   icon: "mdi:gauge"
+  #   accuracy_decimals: 3
+  #   expire_after: 80s
+  #   update_interval: 60s
+  #   id: s0_10
+  #   internal_filter: 13us
+  #   force_update: True
+  #   filters:
+  #     - multiply: 0.06
+  # - platform: total_daily_energy
+  #   name: "Daily Energy 10"
+  #   id: energy_day_10
+  #   power_id: s0_10
+  #   unit_of_measurement: "kWh"
+
+
+  # - platform: interrupt_pulse_counter
+  #   pin: 
+  #     number: 9
+  #     mode: INPUT_PULLDOWN
+  #   name: "Power Meter 11"
+  #   unit_of_measurement: "kW"
+  #   icon: "mdi:gauge"
+  #   accuracy_decimals: 3
+  #   expire_after: 80s
+  #   update_interval: 60s
+  #   id: s0_11
+  #   internal_filter: 13us
+  #   force_update: True
+  #   filters:
+  #     - multiply: 0.06
+  # - platform: total_daily_energy
+  #   name: "Daily Energy 11"
+  #   id: energy_day_11
+  #   power_id: s0_11
+  #   unit_of_measurement: "kWh"
+  #   accuracy_decimals: 3
+
+  # # - platform: pulse_counter
+  # #   pin: 
+  # #     number: 35
+  # #     mode: INPUT_PULLDOWN
+  # #   name: "PC0"
+  # # - platform: pulse_counter
+  # #   pin: 
+  # #     number: 32
+  # #     mode: INPUT_PULLDOWN
+  # #   name: "PC1"
+  # # - platform: pulse_counter
+  # #   pin: 
+  # #     number: 33
+  # #     mode: INPUT_PULLDOWN
+  # #   name: "PC2"
+  # # - platform: pulse_counter
+  # #   pin: 
+  # #     number: 25 
+  # #     mode: INPUT_PULLDOWN
+  # #   name: "PC3"
+
+

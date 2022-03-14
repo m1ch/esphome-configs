@@ -1,0 +1,56 @@
+font:
+  - file: "fonts/Candara_Regular.ttf"
+  # - file: "Candara_Regular.ttf"
+    id: candara140
+    size: 140
+  - file: "fonts/Candara_Regular.ttf"
+    id: candara20
+    size: 20
+  - file: "fonts/Candara_Regular.ttf"
+    id: candara10
+    size: 10
+
+  # - file: "/usr/share/fonts/truetype/noto/NotoSansMalayalamUI-Bold.ttf"
+  - file: "fonts/NotoSansMalayalamUI-Bold.ttf"
+    id: font_target
+    size: 22
+    glyphs: "0123456789°C%."
+  - file: "fonts/NotoSansMalayalamUI-Regular.ttf"
+    id: font_outdoor
+    size: 36
+    glyphs: "0123456789°C%."
+  - file: "fonts/NotoSansMalayalamUI-Regular.ttf"
+    id: font_indoor
+    size: 48
+    glyphs: "0123456789°C%."
+
+    # NotoSansMono-Regular calc space 40/32*H
+  - file: "fonts/NotoSansMono-Bold.ttf"
+    id: NotoSansMonoRegular96
+    glyphs: "0123456789: "
+    size: 96
+  - file: "fonts/NotoSansMono-Bold.ttf"
+    id: NotoSansMonoRegular64
+    glyphs: "0123456789"
+    size: 64
+  # - file : "fonts/NotoSansMono-Regular.ttf"
+  #   id: font_date
+  #   # glyphs: "0123456789-"
+  #   size: 20
+  - file : "fonts/NotoSansMono-Regular.ttf"
+    id: NotoSansMonoRegular40
+    size: 40 # gap = 29
+  - file: "fonts/NotoSansMono-Regular.ttf"
+    id: NotoSansMonoRegular28
+    size: 28
+  - file : "fonts/NotoSansMono-Regular.ttf"
+    id: NotoSansMonoRegular22
+    # glyphs: "0123456789-"
+    size: 22 
+  - file : "fonts/NotoSansMono-Regular.ttf"
+    id: NotoSansMonoRegular20
+    # glyphs: "0123456789-"
+    size: 20
+  - file: "fonts/NotoSansMono-Regular.ttf"
+    id: NotoSansMonoRegular12
+    size: 12

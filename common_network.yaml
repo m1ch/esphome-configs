@@ -1,0 +1,20 @@
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pw
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: ${devicename_upper} Fallback Hotspot
+    password: !secret wifi_pw
+
+mqtt:
+  id: mqtt_client
+  broker: !secret mqtt_host
+  username: !secret mqtt_user
+  password: !secret mqtt_pw
+  discovery: $mqtt_discovery
+
+ota:
+  # password: "xxx"
+
+captive_portal:

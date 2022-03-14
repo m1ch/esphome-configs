@@ -1,0 +1,69 @@
+substitutions:
+  devicename: tvled
+  upper_devicename: TVled
+
+esphome:
+  name: tvled
+
+  platformio_options:
+    lib_deps: NeoPixelBus@2.6.0
+  build_path: ./build/${devicename}
+
+esp8266:
+  board: espmxdevkit
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pw
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Tvled Fallback Hotspot"
+    password: !secret wifi_pw
+
+mqtt:
+  broker: !secret mqtt_host
+  username: !secret mqtt_user
+  password: !secret mqtt_pw
+  discovery: true # Only for testpurposes
+
+captive_portal:
+
+light:
+  - platform: fastled_clockless
+    chipset: WS2812
+    pin: GPIO15
+    num_leds: 300
+    rgb_order: GRB
+    name: "TVLED WS2812 Light"
+    effects:
+      - random:
+          name: Random Effect With Custom Values
+          transition_length: 5s
+          update_interval: 7s
+      - addressable_fireworks:
+          name: Fireworks Effect With Custom Values
+          update_interval: 32ms
+          spark_probability: 10%
+          use_random_color: false
+          fade_out_rate: 120
+      - addressable_lambda:
+          name: "Christmas RedGreen (Static)"
+          lambda: |-
+
+            for (int i = 1; i <  it.size(); i+=2) {
+            it[i] = light::ESPColor(255, 0, 18);
+            }
+            for (int i = 0; i <  it.size(); i+=2) {
+            it[i] = light::ESPColor(0, 179, 44);
+            }
+          # from reddit user thedoctor___
+          # https://www.reddit.com/r/homeassistant/comments/bua3u8/esphome_what_custom_addressable_lambda_effects/

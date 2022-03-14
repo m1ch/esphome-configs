@@ -1,0 +1,94 @@
+image: 
+  # - file: "images/icons/Nextion icon - clear night.tif"
+  #   id: clear_night
+  #   # resize: 100x100
+  # - file: "images/icons/weather-cloudy.png"
+  #   id: weather_cloudy
+  #   # resize: 80x80
+  - file: "images/icons/alert-24.bmp"
+    id: alert_24
+  - file: "images/icons/alert-48.bmp"
+    id: alert_48
+  - file: "images/icons/alert-72.bmp"
+    id: alert_72
+  - file: "images/icons/alert-96.bmp"
+    id: alert_96
+  - file: "images/icons/alert-120.bmp"
+    id: alert_120
+
+  - file: "images/icons/radiator-24.bmp"
+    id: radiator_24
+  - file: "images/icons/air-humidifier-24.bmp"
+    id: air_humidifier_24
+  - file: "images/icons/water-percent-24.bmp"
+    id: water_percent_24
+  
+
+  - file: "images/icons/weather-cloudy-72.bmp"
+    id: weather_cloudy_72
+  - file: "images/icons/weather-fog-72.bmp"
+    id: weather_fog_72
+  - file: "images/icons/weather-hail-72.bmp"
+    id: weather_hail_72
+  - file: "images/icons/weather-hazy-72.bmp"
+    id: weather_hazy_72
+  - file: "images/icons/weather-lightning-72.bmp"
+    id: weather_lightning_72
+  - file: "images/icons/weather-lightning-rainy-72.bmp"
+    id: weather_lightningrainy_72
+  - file: "images/icons/weather-partly-cloudy-72.bmp"
+    id: weather_partlycloudy_72
+  - file: "images/icons/weather-pouring-72.bmp"
+    id: weather_pouring_72
+  - file: "images/icons/weather-rainy-72.bmp"
+    id: weather_rainy_72
+  - file: "images/icons/weather-snowy-72.bmp"
+    id: weather_snowy_72
+  - file: "images/icons/weather-snowy-heavy-72.bmp"
+    id: weather_snowyheavy_72
+  - file: "images/icons/weather-snowy-rainy-72.bmp"
+    id: weather_snowyrainy_72
+  - file: "images/icons/weather-sunny-72.bmp"
+    id: weather_sunny_72
+  - file: "images/icons/weather-sunny-alert-72.bmp"
+    id: weather_sunnyalert_72
+  - file: "images/icons/weather-windy-72.bmp"
+    id: weather_windy_72
+
+  - file: "images/icons/weather-cloudy-120.bmp"
+    id: weather_cloudy_120
+  - file: "images/icons/weather-fog-120.bmp"
+    id: weather_fog_120
+  - file: "images/icons/weather-hail-120.bmp"
+    id: weather_hail_120
+  - file: "images/icons/weather-hazy-120.bmp"
+    id: weather_hazy_120
+  - file: "images/icons/weather-lightning-120.bmp"
+    id: weather_lightning_120
+  - file: "images/icons/weather-lightning-rainy-120.bmp"
+    id: weather_lightningrainy_120
+  - file: "images/icons/weather-partly-cloudy-120.bmp"
+    id: weather_partlycloudy_120
+  - file: "images/icons/weather-pouring-120.bmp"
+    id: weather_pouring_120
+  - file: "images/icons/weather-rainy-120.bmp"
+    id: weather_rainy_120
+  - file: "images/icons/weather-snowy-120.bmp"
+    id: weather_snowy_120
+  - file: "images/icons/weather-snowy-heavy-120.bmp"
+    id: weather_snowyheavy_120
+  - file: "images/icons/weather-snowy-rainy-120.bmp"
+    id: weather_snowyrainy_120
+  - file: "images/icons/weather-sunny-120.bmp"
+    id: weather_sunny_120
+  - file: "images/icons/weather-sunny-alert-120.bmp"
+    id: weather_sunnyalert_120
+  - file: "images/icons/weather-windy-120.bmp"
+    id: weather_windy_120
+
+  - file: "images/icons/bus-clock-24.bmp"
+    id: bus_clock_24
+  - file: "images/icons/bus-clock-48.bmp"
+    id: bus_clock_48   
+  - file: "images/icons/bus-clock-72.bmp"
+    id: bus_clock_72

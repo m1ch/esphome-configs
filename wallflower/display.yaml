@@ -1,0 +1,32 @@
+globals:
+  - id: eink42_max_x
+    type: const uint16_t
+    initial_value: '400'
+  - id: eink42_max_y
+    type: const uint16_t
+    initial_value: '300'
+
+display:
+  - platform: waveshare_epaper
+    id: eink42
+    cs_pin: $eink_cs_pin
+    dc_pin: $eink_dc_pin
+    reset_pin: $eink_rst_pin
+    busy_pin: $eink_bsy_pin
+    model: 4.20in # 400x300 pixel
+    rotation: $eink_rotation
+    update_interval: never #315360000s 
+    # full_update_every: 30
+    lambda: |-
+      eink42Draw();
+
+    # pages:
+    #   - id: page1
+    #     lambda: |-
+    #       pageMain();
+    #   - id: page2 # just display the clock
+    #     lambda: |-
+    #       pageClock();
+    #   - id: page3 # switches
+    #     lambda: |-
+    #       pageSwitch();

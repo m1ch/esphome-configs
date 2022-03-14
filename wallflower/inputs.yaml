@@ -1,0 +1,119 @@
+script:
+  - id: delay_rot_enc
+    mode: restart
+    then:
+      - logger.log: "Script: delay_rot_enc"
+      - delay: 700ms
+      - logger.log: "Script: delay_rot_enc - update display"
+      - component.update: eink42
+  - id: delay_rot_enc_click
+    mode: restart
+    then:
+      - logger.log: "Script: delay_rot_enc_click"
+      - delay: 700ms
+      - logger.log: "Script: delay_rot_enc_click - update display"
+      - component.update: eink42
+
+sensor:
+  - platform: rotary_encoder
+    id: rot_enc1
+    internal: True
+    # name: "Rotary Encoder"
+    pin_a: 
+      number: $rota_a_pin
+      inverted: False
+      mode: INPUT_PULLUP
+    pin_b: 
+      number: $rota_b_pin
+      inverted: False
+      mode: INPUT_PULLUP
+    # filters:
+    #   - or:
+    #     - throttle: 0.5s
+    #     - heartbeat: 1s
+    on_value:
+      then:
+        - lambda: |-
+            int enc_dif = int(id(rot_enc1).state) - id(rot_enc1_old);
+            /*if ( enc_dif == 0 ) {
+              id(mqtt_client).publish_json("einktest/sensor/rotary_encoder", [=](JsonObject &root) {
+                root["value"] = id(rot_enc1).state;
+                root["target_t"] = id(target_t);
+                root["target_h"] = id(target_h);
+              });
+            }
+            else {*/
+            if ( enc_dif != 0 ) {
+              id(rot_enc1_old) = int(id(rot_enc1).state);
+              if ( id(mode) == id(mode_scr1_settemp) ){
+                id(target_t) += float(enc_dif)/2;
+                return;
+              }
+              if ( id(mode) == id(mode_scr1_sethum)) {
+                id(target_h) += enc_dif;
+                return;
+              }
+            }
+        - script.execute: delay_rot_enc
+        - script.execute: blink_right_2
+
+binary_sensor:
+  # - platform: gpio
+  #   pin: 
+  #     number: 32
+  #     inverted: True
+  #     mode: INPUT_PULLUP
+  #   name: "Switch"
+  - platform: gpio
+    pin:
+      number: $rota_btn_pin
+      inverted: True
+      mode: INPUT_PULLUP
+    # name: "ROT_SW"
+    internal: True
+    id: rot_sw
+    on_click:
+      - min_length: 1ms
+        max_length: 699ms
+        then:
+          - logger.log: "ROTENC - short click"
+          - display.page.show: !lambda |-
+              id(mode) += 1;
+              if ( id(mode) < id(mode_scr2) ) {
+                return id(page1);
+              }
+              if ( id(mode) < id(mode_scr3) ) {
+                return id(page2);
+              }
+              id(mode) = 0;
+              return id(page1);
+              /* if ( id(mode) >= id(mode_last) ){
+                id(mode) = 0;
+              }
+              else {
+                id(mode) += 1;
+              } */
+          - script.execute: delay_rot_enc
+      - min_length: 700ms
+        max_length: 5s
+        then:
+          - logger.log: "ROTENC - long click"
+          - display.page.show: !lambda |-
+              if ( id(mode) < id(mode_scr2) ){
+                id(mode) = id(mode_scr2);
+                return id(page2);
+              }
+          
+              // case ( id(mode) < id(mode_scr3) ):
+                // id(mode) = id(mode_scr3);
+                // return id(page3);
+                // break;
+              id(mode) = 0;
+              return id(page1);
+              /* if ( id(mode) < id(mode_scr2) ){
+                id(mode) = id(mode_scr2);
+              }
+              else {
+                id(mode) = 0;
+              } */
+          - script.execute: delay_rot_enc

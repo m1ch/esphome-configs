@@ -1,13 +1,13 @@
 substitutions:
   devicename: weatherstation
-  upper_devicename: Weatherstation
-
+  devicename_upper: Weatherstation
+  ip_addr: 10.23.30.96
 
 esphome:
   name: $devicename
   platform: ESP8266
   board: nodemcuv2
-  build_path: ./build/${devicename}
+  build_path: ./.build/${devicename}
 
 packages:
   wifi: !include common_wifi.yaml
@@ -24,27 +24,78 @@ logger:
 
 ota:
 
+time:
+  - platform: sntp
+    id: sntp_time
+
+button:
+  - platform: restart
+    name: "${devicename_upper} Restart"
+
+text_sensor:
+  - platform: version
+    hide_timestamp: true
+    name: '${devicename_upper} ESPHome Version'
+  - platform: template
+    name: ${devicename_upper} Uptime
+    id: uptime_human
+    icon: mdi:clock-start
+  - platform: wifi_info
+    ip_address:
+      name: '${devicename_upper} IP Address'
+      icon: mdi:wifi
+    ssid:
+      name: '${devicename_upper} Connected SSID'
+      icon: mdi:wifi-strength-2
+
 sensor:
+  - platform: wifi_signal
+    name: ${devicename_upper} WiFi Signal
+    update_interval: 60s
+
+  - platform: uptime
+    name: ${devicename_upper} Uptime Sec
+    id: uptime_sensor
+    update_interval: 60s
+    on_raw_value:
+      then:
+        - text_sensor.template.publish:
+            id: uptime_human
+            state: !lambda |-
+              int seconds = round(id(uptime_sensor).raw_state);
+              int days = seconds / (24 * 3600);
+              seconds = seconds % (24 * 3600);
+              int hours = seconds / 3600;
+              seconds = seconds % 3600;
+              int minutes = seconds /  60;
+              seconds = seconds % 60;
+              return (
+                (days ? to_string(days) + "d " : "") +
+                (hours ? to_string(hours) + "h " : "") +
+                (minutes ? to_string(minutes) + "m " : "") +
+                (to_string(seconds) + "s")
+              ).c_str();
+
   - platform: sds011
     pm_2_5:
-      name: "pm 25"
+      name: "${devicename_upper} PM 2.5"
     pm_10_0:
-      name: "pm 10"
+      name: "${devicename_upper} PM 10"
     update_interval: 5min
 
   - platform: bme280
     temperature:
-      name: "Temperature"
+      name: "${devicename_upper} Temperature"
       oversampling: 16x
     pressure:
-      name: "Pressure"
+      name: "${devicename_upper} Pressure"
     humidity:
-      name: "Humidity"
+      name: "${devicename_upper} Humidity"
     address: 0x76
     update_interval: 60s
 
   - platform: bh1750
-    name: "Illuminance 1"
+    name: "${devicename_upper} Illuminance"
     address: 0x23
     update_interval: 60s
     
@@ -75,5 +126,3 @@ sensor:
   #   integration_time: 2.4ms
   #   address: 0x29
   #   update_interval: 60s
-
-

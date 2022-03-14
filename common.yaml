@@ -1,0 +1,69 @@
+esphome:
+  name: ${devicename}
+  build_path: ./build/${devicename}
+  platform: ${devicename_platform}
+  board: ${devicename_board}
+  
+# Enable logging
+logger:
+  level: $logger_level
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "Europe/Vienna"
+    on_time:
+      - seconds: 0
+        minutes: /1
+        then:
+          - component.update: eink42
+          - logger.log: "Time 0"
+
+button:
+  - platform: restart
+    name: "${devicename_upper} Restart"
+    id: btn_restart
+
+text_sensor:
+  - platform: version
+    hide_timestamp: true
+    name: '${devicename_upper} ESPHome Version'
+  - platform: template
+    name: ${devicename_upper} Uptime
+    id: uptime_human
+    icon: mdi:clock-start
+  - platform: wifi_info
+    ip_address:
+      name: '${devicename_upper} IP Address'
+      icon: mdi:wifi
+    ssid:
+      name: '${devicename_upper} Connected SSID'
+      icon: mdi:wifi-strength-2
+
+sensor:
+  - platform: wifi_signal
+    name: ${devicename_upper} WiFi Signal
+    update_interval: 60s
+
+  - platform: uptime
+    name: ${devicename_upper} Uptime Sec
+    id: uptime_sensor
+    update_interval: 60s
+    on_raw_value:
+      then:
+        - text_sensor.template.publish:
+            id: uptime_human
+            state: !lambda |-
+              int seconds = round(id(uptime_sensor).raw_state);
+              int days = seconds / (24 * 3600);
+              seconds = seconds % (24 * 3600);
+              int hours = seconds / 3600;
+              seconds = seconds % 3600;
+              int minutes = seconds /  60;
+              seconds = seconds % 60;
+              return (
+                (days ? to_string(days) + "d " : "") +
+                (hours ? to_string(hours) + "h " : "") +
+                (minutes ? to_string(minutes) + "m " : "") +
+                (to_string(seconds) + "s")
+              ).c_str();

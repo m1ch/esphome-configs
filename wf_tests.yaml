@@ -1,0 +1,292 @@
+substitutions:
+  devicename: wftest
+  devicename_upper: WFtest
+  devicename_platform: ESP32
+  devicename_board: esp32dev
+  logger_level: DEBUG
+  mqtt_discovery: "true"
+  neopixa_num_leds: "16"
+  neopixa_12h_led: "8" # The address of the led on top
+  eink_rotation: "180°"
+  target_t_min: '12.0'
+  target_t_max: '27.0'
+  target_t_ini: '20.0'
+  target_t_step: '1.0'
+  target_h_min: '30.0'
+  target_h_max: '80.0'
+  target_h_ini: '45.0'
+  target_h_step: '5.0'
+
+  mqtt_outdoor_t_topic: "homeassistant/stream/weather/openweathermap/temperature"
+  # mqtt_outdoor_t_topic: "weatherstation/sensor/weatherstation_temperature/state"
+  mqtt_outdoor_h_topic: "homeassistant/stream/weather/openweathermap/humidity"
+  # mqtt_outdoor_h_topic: "weatherstation/sensor/weatherstation_humidity/state"
+  mqtt_outdoor_p_topic: "homeassistant/stream/weather/openweathermap/pressure"
+  # mqtt_outdoor_p_topic: "weatherstation/sensor/weatherstation_pressure/state"
+  # mqtt_forecast_topic: "homeassistant/stream/weather/openweathermap/forecast"
+  mqtt_forecast_topic: "homeassistant/anounce/weather.openweathermap"
+  mqtt_msg_topic: "${devicename}/msg"
+
+  # Pins:
+  spia_mosi_pin: "5"
+  spia_clk_pin: "23"
+  rota_a_pin: "13"
+  rota_b_pin: "14"
+  rota_btn_pin: "27"
+  i2ca_sda_pin: "16"
+  i2ca_scl_pin: "17"
+  eink_cs_pin: "19"
+  eink_dc_pin: "18"
+  eink_rst_pin: "33"
+  eink_bsy_pin: "26"
+  neopixa_pin: "32"
+  dhta_pin: "22"
+
+packages:
+  common: !include common.yaml
+  common_network: !include common_network.yaml
+  globals: !include wallflower/globals.yaml
+  busses: !include wallflower/busses.yaml
+  sensors_mqtt: !include wallflower/sensors_mqtt.yaml
+  fonts: !include wallflower/fonts.yaml
+  icons: !include wallflower/icons.yaml
+  display: !include wallflower/display.yaml
+  neopixel: !include wallflower/neopixel.yaml
+  dht: !include wallflower/dht.yaml
+
+
+  # inputs: !include wf_inputs.yaml
+  # sensors_envirnment: !include wf_sensors_environment.yaml
+  # light: !include wf_lights.yaml
+
+esphome:
+  includes:
+    - wallflower/helpers.h
+    - wallflower/neopixel_effects.h
+    - wallflower/eink42_screens.h
+  on_boot:
+    priority: -100
+    then:
+      # - select.set:
+      #     id: select_scr
+      #     option: "clock"
+      # - component.update: eink42
+      - delay: 3s
+      - select.set:
+          id: select_scr
+          option: "main"
+      - script.execute: input_timeout
+      # - component.update: eink42
+
+sensor:
+  - platform: rotary_encoder
+    id: rot_enc1
+    internal: False
+    restore_mode: ALWAYS_ZERO
+    name: "${devicename_upper} Rotary Encoder"
+    pin_a:
+      number: $rota_a_pin
+      inverted: False
+      mode: INPUT_PULLUP
+    pin_b:
+      number: $rota_b_pin
+      inverted: False
+      mode: INPUT_PULLUP
+    on_value:
+      then:
+        - script.execute: script_rot_enc_rot
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: $rota_btn_pin
+      inverted: True
+      mode: INPUT_PULLUP
+    name: "${devicename_upper} ROT_SW"
+    internal: True
+    id: rot_sw
+    on_click:
+      - min_length: 10ms
+        max_length: 300ms
+        then:
+          # - logger.log: "ROTENC - short click"
+          - script.execute: script_rot_enc_click
+      - min_length: 700ms
+        max_length: 7s
+        then:
+          # - logger.log: "ROTENC - long click"
+          # - light.toggle: rgb_led
+          - script.execute: script_rot_enc_long_click
+      - min_length: 7s
+        max_length: 20s
+        then:
+          - logger.log: "ROTENC - restart"
+          - button.press: btn_restart
+
+script:
+  - id: script_rot_enc_rot
+    mode: restart
+    then:
+      - lambda: |-
+          int enc_dif = int(id(rot_enc1).state) - id(rot_enc1_old);
+
+          if ( enc_dif == 0){
+            return;
+          }
+          id(rot_enc1_old) = int(id(rot_enc1).state);
+
+          if (id(eink42_page) == PAGEMAIN){
+            // ESP_LOGI("main", "main-i: %d", id(input_select_main));
+            if (id(input_select_main) == INPUTSMAINTEMPERATURE){
+              float t = id(target_t).state + float(enc_dif) * id(target_t_step);
+              if ( t < id(target_t_min) || t > id(target_t_max))
+                return;
+              auto call = id(target_t).make_call();
+              call.set_value(t);
+              call.perform();
+            }
+            else if (id(input_select_main) == INPUTSMAINHUMIDITY){
+              int h = id(target_h).state + enc_dif * id(target_h_step);
+              if ( h < id(target_h_min) || h > id(target_h_max))
+                return;
+              auto call = id(target_h).make_call();
+              call.set_value(h);
+              call.perform();
+            }
+          }
+
+          //id(neopixel_effect_color) = Color::random_color();
+          if ( !id(neopixel_effect_running)){
+            // id(neopixel_effect_color) = Color(200,0,0);
+            // ESP_LOGI("main", "Inputs effect started");
+            auto call = id(rgb_led).turn_on();
+            call.set_effect("inputs");
+            call.perform();
+          }
+      - script.execute: input_timeout
+
+  - id: script_rot_enc_click
+    mode: restart
+    then:
+      - sensor.rotary_encoder.set_value:
+          id: rot_enc1
+          value: 0
+      - lambda: |-
+          // ESP_LOGI("main", "Page: %d", id(eink42_page));
+          if (id(eink42_page) == PAGEMAIN){
+            // ESP_LOGI("main", "old: %d", id(input_select_main));
+            id(input_select_main)++;
+            if (id(input_select_main) >= INPUTSMAINLAST){
+              id(input_select_main) = 0;
+            }
+            // ESP_LOGI("main", "new: %d", id(input_select_main));
+          }
+          if ( !id(neopixel_effect_running)){
+            // id(neopixel_effect_color) = Color(200,0,0);
+            auto call = id(rgb_led).turn_on();
+            call.set_effect("inputs");
+            call.perform();
+          }
+      - script.execute: input_timeout
+
+  - id: script_rot_enc_long_click
+    mode: restart
+    then:
+      - sensor.rotary_encoder.set_value:
+          id: rot_enc1
+          value: 0
+      - lambda: |-
+          id(eink42_page)++;
+          if ( id(eink42_page) >= PAGELAST){
+            id(eink42_page) = 0;
+          }
+      - lambda: |-
+          auto call = id(select_scr).make_call();
+          if (id(eink42_page) == PAGESWITCHES)
+            call.set_option("inputs");
+          else if (id(eink42_page) == PAGEALARMS)
+            call.set_option("alarms");
+          else if (id(eink42_page) == PAGECLOCK)
+            call.set_option("clock");
+          else
+            call.set_option("main");
+          call.perform();
+      - script.execute: input_timeout
+  
+  - id: input_timeout
+    mode: restart
+    then:
+      - delay: 800ms
+      - logger.log: "Inputs timed out - update display"
+      - lambda: |-
+          id(rot_enc1_old) = 0;
+          id(neopixel_effect_running) = false;
+      - sensor.rotary_encoder.set_value:
+          id: rot_enc1
+          value: 0
+      - component.update: eink42
+      - delay: 2s
+      - light.turn_off: rgb_led
+    
+
+
+  - id: led_rotate
+    mode: restart
+    then:
+      - delay: 700ms
+      - light.turn_off:
+          id: rgb_led
+  - id: blink_right_1
+    mode: queued
+    then:
+      - light.addressable_set:
+          id: rgb_led
+          red: 0%
+          green: 50%
+          blue: 70%
+      - delay: 300ms
+      - light.turn_off:
+          id: rgb_led
+      - delay: 200ms
+  - id: blink_left_1
+    mode: queued
+    then:
+      - light.addressable_set:
+          range_from: 0
+          range_to: 3
+          id: rgb_led
+          red: 20%
+          green: 00%
+          blue: 0%
+      - delay: 100ms
+      - light.turn_off:
+          id: rgb_led
+      - delay: 50ms
+  - id: blink_right_2
+    mode: queued
+    then:
+      - light.turn_on:
+          id: rgb_led
+          brightness: 100%
+          red: 0.0
+          green: 1.0
+          blue: 1.0
+      - delay: 200ms
+      - light.turn_off:
+         id: rgb_led
+      - delay: 100ms
+  - id: blink_effect
+    mode: queued
+    then:
+      - light.addressable_set:
+          range_from: 0
+          range_to: 3
+          id: rgb_led
+          red: 20%
+          green: 00%
+          blue: 0%
+      - delay: 100ms
+      - light.turn_off:
+          id: rgb_led
+      - delay: 50ms
+

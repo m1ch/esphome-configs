@@ -1,0 +1,10 @@
+spi:
+  mosi_pin: $spia_mosi_pin
+  clk_pin: $spia_clk_pin
+
+i2c:
+  sda: $i2ca_sda_pin
+  scl: $i2ca_scl_pin
+  scan: True
+  id: bus_a
+  

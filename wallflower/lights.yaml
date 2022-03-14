@@ -1,0 +1,87 @@
+script:
+  - id: blink_right_1
+    mode: queued
+    then:
+      - light.addressable_set:
+          id: led_right
+          red: 0%
+          green: 50%
+          blue: 70%
+      - delay: 300ms
+      - light.turn_off:
+          id: led_right
+      - delay: 200ms
+  - id: blink_left_1
+    mode: queued
+    then:
+      - light.addressable_set:
+          id: led_left
+          red: 0%
+          green: 50%
+          blue: 70%
+      - delay: 300ms
+      - light.turn_off:
+          id: led_left
+      - delay: 200ms
+  - id: blink_right_2
+    mode: queued
+    then:
+      - light.turn_on:
+          id: led_right
+          brightness: 100%
+          red: 0.0
+          green: 1.0
+          blue: 1.0
+      - delay: 500ms
+      - light.turn_off:
+         id: led_right
+      - delay: 200ms
+      
+
+
+
+light:
+  # - platform: binary
+  #   name: "GPIO 12"
+  #   output: gpio_12
+  # - platform: binary
+  #   name: "GPIO 13"
+  #   output: gpio_13
+  # - platform: binary
+  #   name: "GPIO 14"
+  #   output: gpio_14
+  # - platform: binary
+  #   name: "GPIO 15"
+  #   output: gpio_15
+  # - platform: binary
+  #   name: "GPIO 16"
+  #   output: gpio_16
+  # - platform: binary
+  #   name: "GPIO 17"
+  #   output: gpio_17
+  # - platform: binary
+  #   name: "buzzer"
+  #   output: buzzer
+  - platform: neopixelbus
+    type: GRB
+    pin: $neopixa_pin
+    num_leds: 16
+    name: "NeoPixel Light"
+    variant: WS2812
+    id: rgb_led
+  - platform: partition
+    name: led_left
+    id: led_left
+    default_transition_length: 0s
+    segments:
+      - id: rgb_led
+        from: 8
+        to: 15
+  - platform: partition
+    name: led_right
+    id: led_right
+    default_transition_length: 0s
+    segments:
+      - id: rgb_led
+        from: 0
+        to: 7

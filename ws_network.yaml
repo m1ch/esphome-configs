@@ -1,0 +1,9 @@
+
+
+mqtt:
+  broker: !secret mqtt_host
+  username: !secret mqtt_user
+  password: !secret mqtt_pw
+
+web_server:
+  port: 80

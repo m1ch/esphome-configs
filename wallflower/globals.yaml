@@ -1,0 +1,180 @@
+globals:
+  - id: outdoor_temp
+    type: float
+  - id: outdoor_hum
+    type: float
+  - id: altitude
+    type: const float
+    initial_value: '366.0'
+
+
+  # - id: humidifying
+  #   type: bool
+  #   initial_value: 'false'
+  
+  - id: rot_enc1_old
+    type: int
+    initial_value: '0'
+  
+  # modes:
+  # 0: set target temperature
+  # 1: set target humidity
+  # 2: tbd
+  
+  - id: eink42_page
+    type: uint8_t
+    initial_value: PAGEMAIN
+  - id: input_select_main
+    type: uint8_t
+    initial_value: INPUTSMAINTEMPERATURE
+  - id: input_select_switches
+    type: uint8_t
+    initial_value: INPUTSSWITCHES0
+  
+  - id: mode
+    type: unsigned int
+    initial_value: '0'
+  - id: mode_scr1_settemp
+    type: unsigned int
+    initial_value: '0'
+  - id: mode_scr1_sethum
+    type: unsigned int
+    initial_value: '1'
+  - id: mode_scr2
+    type: unsigned int
+    initial_value: '2'
+  - id: mode_scr3
+    type: unsigned int
+    initial_value: '3'
+
+  - id: mode_last
+    type: unsigned int
+    initial_value: '2'
+  
+  - id: forcast_condition
+    type: char[3][20]
+    restore_value: no
+  
+  - id: target_t_min
+    type: const float
+    initial_value: $target_t_min
+    restore_value: no
+  
+  - id: target_t_max
+    type: const float
+    initial_value: $target_t_max
+    restore_value: no
+  
+  - id: target_t_ini
+    type: const float
+    initial_value: $target_t_ini
+    restore_value: no
+  
+  - id: target_t_step
+    type: const float
+    initial_value: $target_t_step
+    restore_value: no
+  
+  - id: target_h_min
+    type: const float
+    initial_value: $target_h_min
+    restore_value: no
+  
+  - id: target_h_max
+    type: const float
+    initial_value: $target_h_max
+    restore_value: no
+  
+  - id: target_h_ini
+    type: const float
+    initial_value: $target_h_ini
+    restore_value: no
+  
+  - id: target_h_step
+    type: const float
+    initial_value: $target_h_step
+    restore_value: no
+
+
+
+  # - id: target_t
+  #   type: float
+  #   #restore_value: yes
+  #   initial_value: '20.0'
+  # # - id: heating
+  # #   type: bool
+  # #   initial_value: 'false'
+  # - id: target_h
+  #   type: float
+  #   #restore_value: yes
+  #   initial_value: '50.0'
+
+number:
+  - platform: template
+    name: "Target Temperature"
+    id: target_t
+    unit_of_measurement: "°C"
+    optimistic: true
+    restore_value: false
+    min_value: $target_t_min
+    max_value: $target_t_max
+    initial_value: $target_t_ini
+    step: $target_t_step
+  - platform: template
+    name: "Target Humidity"
+    id: target_h
+    unit_of_measurement: "%"
+    optimistic: true
+    restore_value: false
+    min_value: $target_h_min
+    max_value: $target_h_max
+    initial_value: $target_h_ini
+    step: $target_h_step
+  
+select:
+  - platform: template
+    name: "Screen select"
+    id: select_scr
+    optimistic: true
+    options:
+      - "main"
+      - "inputs"
+      - "alarms"
+      - "clock"
+    initial_option: "main"
+    on_value:
+      then:
+        - lambda: |-
+            char option[10];
+            strcpy( option, x.c_str());
+            if ( !strcmp(option, "inputs") ){
+              id(eink42_page) = PAGESWITCHES;
+            }
+            else if ( !strcmp(option, "alarms") ){
+              id(eink42_page) = PAGEALARMS;
+            }
+            else if ( !strcmp(option, "clock") ){
+              id(eink42_page) = PAGECLOCK;
+            }
+            else {
+              id(eink42_page) = PAGEMAIN;
+            }
+            
+        # - display.page.show: !lambda |-
+        #     char option[10];
+        #     strcpy( option, x.c_str());
+        #     if( !strcmp(option, "main") ){
+        #       return id(page1);
+        #     }
+        #     else if ( !strcmp(option, "inputs") ){
+        #       return id(page3);
+        #     }
+        #     else if ( !strcmp(option, "alarms") ){
+        #       return id(page1);
+        #     }
+        #     else if ( !strcmp(option, "clock") ){
+        #       return id(page2);
+        #     }
+        #     else {
+        #       return id(page1);
+        #     }

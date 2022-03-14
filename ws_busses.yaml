@@ -1,0 +1,11 @@
+uart:
+  rx_pin: D1
+  tx_pin: D0
+  baud_rate: 9600
+
+i2c:
+  sda: D3
+  scl: D4
+  scan: True
+  id: bus_a
+  

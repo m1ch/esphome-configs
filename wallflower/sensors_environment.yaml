@@ -1,0 +1,49 @@
+sensor:
+  - platform: bme280
+    temperature:
+      name: ${devicename_upper} Temperature
+      id: "local_t"
+      oversampling: 16x
+    pressure:
+      name: ${devicename_upper} Pressure
+      id: "local_p"
+    humidity:
+      name: ${devicename_upper} Humidity
+      id: "local_h"
+    address: 0x76
+    update_interval: 60s
+  - platform: bh1750
+    name: ${devicename_upper} Illuminance
+    id: "local_lx"
+    address: 0x23
+    update_interval: 60s
+
+binary_sensor:
+  - platform: template
+    name: ${devicename_upper} Heater
+    id: heating
+    lambda: |-
+      if ( id(local_t).state > (id(target_t)+0.3) ) {
+        return false;
+      }
+      else if (id(local_t).state < (id(target_t)-0.3)) {
+        return true;
+      }
+      else {
+        return {};
+      }
+
+  - platform: template
+    name: ${devicename_upper} Humidifier
+    id: humidifying
+    lambda: |-
+      if ( id(local_h).state > (id(target_h)+2) ) {
+        return false;
+      }
+      else if (id(local_h).state < (id(target_h)-2)) {
+        return true;
+      }
+      else {
+        return {};
+      }
+

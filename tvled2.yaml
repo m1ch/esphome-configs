@@ -1,0 +1,146 @@
+substitutions:
+  devicename: tvled2
+  upper_devicename: TVled2
+
+esphome:
+  name: ${devicename}
+
+  platformio_options:
+    lib_deps: NeoPixelBus@2.6.0
+  build_path: ./build/${devicename}
+
+esp32:
+  board: az-delivery-devkit-v4
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  # services:
+  #   - service: play_rtttl
+  #     variables:
+  #       song_str: string
+  #     then:
+  #       - rtttl.play:
+  #           rtttl: !lambda 'return song_str;'
+
+
+ota:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pw
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Tvled2 Fallback Hotspot"
+    password: !secret wifi_pw
+
+mqtt:
+  broker: !secret mqtt_host
+  username: !secret mqtt_user
+  password: !secret mqtt_pw
+  discovery: true # Only for testpurposes
+  on_message:
+     - topic: ${devicename}/rtttl/play
+       then:
+         - rtttl.play: !lambda 'return x;'
+     - topic: ${devicename}/rtttl/mission
+       then:
+         - rtttl.play: 'MissionImp:d=16,o=6,b=95:32d,32d#,32d,32d#,32d,32d#,32d,32d#,32d,32d,32d#,32e,32f,32f#,32g,g,8p,g,8p,a#,p,c7,p,g,8p,g,8p,f,p,f#,p,g,8p,g,8p,a#,p,c7,p,g,8p,g,8p,f,p,f#,p,a#,g,2d,32p,a#,g,2c#,32p,a#,g,2c,a#5,8c,2p,32p,a#5,g5,2f#,32p,a#5,g5,2f,32p,a#5,g5,2e,d#,8d'
+     - topic: ${devicename}/rtttl/twoshort
+       then:
+         - rtttl.play: 'two short:d=4,o=5,b=100:16e6,16e6'
+     - topic: ${devicename}/rtttl/long
+       then:
+         - rtttl.play: 'long:d=1,o=5,b=100:e6'
+     - topic: ${devicename}/rtttl/siren
+       then:
+         - rtttl.play: 'siren:d=8,o=5,b=100:d,e,d,e,d,e,d,e'
+     - topic: ${devicename}/rtttl/scaleup
+       then:
+         - rtttl.play: 'scale_up:d=32,o=5,b=100:c,c#,d#,e,f#,g#,a#,b'    
+
+captive_portal:
+
+wled:
+
+light:
+  - platform: neopixelbus
+    type: GRB
+    variant: WS2812
+    pin: GPIO14
+    num_leds: 75
+    name: "TVLED2 Light"
+    id: light1
+  # - platform: fastled_clockless
+  #   chipset: WS2812B
+  #   pin: GPIO14
+  #   num_leds: 75
+  #   rgb_order: GRB
+  #   name: "TVLED2 Light"
+  #   id: light1
+    effects:
+      - random:
+          name: Random Effect With Custom Values
+          transition_length: 5s
+          update_interval: 7s
+      - addressable_fireworks:
+          name: Fireworks Effect With Custom Values
+          update_interval: 32ms
+          spark_probability: 10%
+          use_random_color: false
+          fade_out_rate: 120
+      - addressable_lambda:
+          name: "Christmas RedGreen (Static)"
+          lambda: |-
+            for (int i = 1; i <  it.size(); i+=2) {
+            it[i] = light::ESPColor(255, 0, 18);
+            }
+            for (int i = 0; i <  it.size(); i+=2) {
+            it[i] = light::ESPColor(0, 179, 44);
+            }
+      - wled:
+  - platform: partition
+    name: "Lights Side"
+    segments:
+      # Use first 10 LEDs from the light with ID light1
+      - id: light1
+        from: 0
+        to: 64
+    # effects:
+    #   - wled:
+  - platform: partition
+    name: "Lights Side Lower"
+    segments:
+      # Use first 10 LEDs from the light with ID light1
+      - id: light1
+        from: 0
+        to: 29
+  - platform: partition
+    name: "Lights Side Upper"
+    segments:
+      # Use first 10 LEDs from the light with ID light1
+      - id: light1
+        from: 30
+        to: 64
+  - platform: partition
+    name: "Light Top"
+    segments:
+      # Use LEDs 11-20 from the light with ID light1
+      - id: light1
+        from: 65
+        to: 74
+
+output:
+  - platform: ledc
+    pin: GPIO23
+    id: rtttl_out
+
+rtttl:
+  output: rtttl_out
+
+# song_str: "mario:d=4,o=5,b=100:16e6,16e6,32p,8e6,16c6,8e6,8g6,8p,8g,8p,8c6,16p,8g,16p,8e,16p,8a,8b,16a#,8a,16g.,16e6,16g6,8a6,16f6,8g6,8e6,16c6,16d6,8b,16p,8c6,16p,8g,16p,8e,16p,8a,8b,16a#,8a,16g.,16e6,16g6,8a6,16f6,8g6,8e6,16c6,16d6,8b,8p,16g6,16f#6,16f6,16d#6,16p,16e6,16p,16g#,16a,16c6,16p,16a,16c6,16d6,8p,16g6,16f#6,16f6,16d#6,16p,16e6,16p,16c7,16p,16c7,16c7,p,16g6,16f#6,16f6,16d#6,16p,16e6,16p,16g#,16a,16c6,16p,16a,16c6,16d6,8p,16d#6,8p,16d6,8p,16c6"

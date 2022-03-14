@@ -1,0 +1,43 @@
+sensor:
+  - platform: mqtt_subscribe
+    name: "${devicename_upper} outdoor_t"
+    id: outdoor_t
+    internal: false
+    topic: $mqtt_outdoor_t_topic
+  - platform: mqtt_subscribe
+    name: "${devicename_upper} outdoor_h"
+    id: outdoor_h
+    internal: true
+    topic: $mqtt_outdoor_h_topic
+  - platform: mqtt_subscribe
+    name: "${devicename_upper} outdoor_p"
+    id: outdoor_p
+    internal: true
+    topic: $mqtt_outdoor_p_topic
+    
+mqtt:
+  on_json_message:
+    topic: $mqtt_forecast_topic
+    then:
+      - lambda: |-
+          if (x.containsKey("c1"))
+            strcpy( id(forcast_condition)[0], x["c1"]);
+          if (x.containsKey("c2"))
+            strcpy( id(forcast_condition)[1], x["c2"]);
+          if (x.containsKey("c3"))
+            strcpy( id(forcast_condition)[2], x["c3"]);
+
+
+# [
+#   {
+#     "datetime": "2022-03-08T11:00:00+00:00",
+#     "precipitation": 0,
+#     "precipitation_probability": 2,
+#     "pressure": 1022,
+#     "wind_speed": 2.39,
+#     "wind_bearing": 322,
+#     "condition": "sunny",
+#     "clouds": 7,
+#     "temperature": 8.2,
+#     "templow": -2.3
+#   },

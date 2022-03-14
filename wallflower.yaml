@@ -1,0 +1,229 @@
+# Links: 
+# https://github.com/bruxy70/Home-Assistant-ESPHome-Weather-Station
+
+
+substitutions:
+  devicename: wallflower
+  devicename_upper: Wallflower
+  eink_rotation: "0°"
+
+  mqtt_discovery: "true"
+  # Pins:
+  ws_pin: "32"
+
+  spia_mosi_pin: "5"
+  spia_clk_pin: "23"
+  rota_a_pin: "0"
+  rota_b_pin: "4"
+  rota_btn_pin: "2"
+  i2ca_sda_pin: "21"
+  i2ca_scl_pin: "22"
+  eink_cs_pin: "19"
+  eink_dc_pin: "18"
+  eink_rst_pin: "33"
+  eink_bsy_pin: "26"
+  neopixa_pin: "10"
+
+esphome:
+  name: $devicename
+  build_path: ./build/${devicename}
+  platform: ESP32
+  board: esp32dev
+  # platformio_options:
+  #   lib_deps: 
+  #     - NeoPixelBus@2.6.0
+  #     - AsyncTCP-esphome@1.1.1
+  #     - FS
+  #     - ESPAsyncWebServer-esphome@1.2.7
+  #     - Hash
+  #     - AsyncMqttClient-esphome@0.8.4
+  #     - ArduinoJson-esphomelib@5.13.3
+  #     - Wire
+  #     - ESPmDNS
+  includes:
+    - wallflower/screenlets.h
+
+  on_boot:
+    # priority: -10
+    then:
+      - lambda: |-
+          char tmp[] = "nil";
+          strcpy( id(forcast_condition)[0], tmp);
+          strcpy( id(forcast_condition)[1], tmp);
+          strcpy( id(forcast_condition)[2], tmp);
+
+button:
+  - platform: restart
+    name: "${devicename_upper} Restart"
+
+packages:
+  wifi: !include common_network.yaml
+  busses: !include wf_busses.yaml
+  globals: !include wf_globals.yaml
+  sensors_mqtt: !include wf_sensors_mqtt.yaml
+  inputs: !include wf_inputs.yaml
+  sensors_envirnment: !include wf_sensors_environment.yaml
+  display: !include wf_display.yaml
+  light: !include wf_lights.yaml
+
+text_sensor:
+  - platform: version
+    hide_timestamp: true
+    name: '${devicename_upper} ESPHome Version'
+  - platform: template
+    name: ${devicename_upper} Uptime
+    id: uptime_human
+    icon: mdi:clock-start
+  - platform: wifi_info
+    ip_address:
+      name: '${devicename_upper} IP Address'
+      icon: mdi:wifi
+    ssid:
+      name: '${devicename_upper} Connected SSID'
+      icon: mdi:wifi-strength-2
+
+sensor:
+  - platform: wifi_signal
+    name: ${devicename_upper} WiFi Signal
+    update_interval: 60s
+
+  - platform: uptime
+    name: ${devicename_upper} Uptime Sec
+    id: uptime_sensor
+    update_interval: 60s
+    on_raw_value:
+      then:
+        - text_sensor.template.publish:
+            id: uptime_human
+            state: !lambda |-
+              int seconds = round(id(uptime_sensor).raw_state);
+              int days = seconds / (24 * 3600);
+              seconds = seconds % (24 * 3600);
+              int hours = seconds / 3600;
+              seconds = seconds % 3600;
+              int minutes = seconds /  60;
+              seconds = seconds % 60;
+              return (
+                (days ? to_string(days) + "d " : "") +
+                (hours ? to_string(hours) + "h " : "") +
+                (minutes ? to_string(minutes) + "m " : "") +
+                (to_string(seconds) + "s")
+              ).c_str();
+
+# wifi: 
+#   manual_ip:
+#     static_ip: 10.23.30.225
+#     # Set this to the IP address of the router. Often ends with .1
+#     gateway: 10.23.30.1
+#     # The subnet of the network. 255.255.255.0 works for most home networks.
+#     subnet: 255.255.255.0
+
+# transition_length: !lambda |-
+#   int length = 1000;
+#   if (x.containsKey("length"))
+#     length = x["length"];
+#   return length;
+
+# brightness: !lambda "return x["bright"];"
+
+# effect: !lambda |-
+#   const char *effect = "None";
+#   if (x.containsKey("effect"))
+#     effect = x["effect"];
+#   return effect;
+
+
+# Enable Home Assistant API
+# api:
+#   password: "xxx"
+
+
+output:
+  - platform: ledc
+    ######################################################
+    # One buzzer leg connected to GPIO12, the other to GND
+    ######################################################
+    pin: 25
+    id: buzzer
+  # - platform: gpio
+  #   pin: 
+  #     number: 16
+  #     # mode: OUTPUT_OPEN_DRAIN
+  #   id: gpio_16
+  # - platform: gpio
+  #   pin:
+  #     number: 17
+  #     # mode: OUTPUT_OPEN_DRAIN
+  #   id: gpio_17
+
+# Example configuration entry
+switch:
+  # - platform: gpio
+  #   pin: 25
+  #   name: "Living Room Dehumidifier"
+
+
+
+
+# esp32_ble_tracker:
+
+# binary_sensor:
+# - platform: ble_presence
+#   mac_address: A0:28:ED:81:78:1A
+#   name: "Nokia 6.1 mich"
+
+  
+        # - mqtt.publish_json:
+        #     topic: einktest/sensor/rotary_encoder
+        #     payload: !lambda |-
+        #       root["value"] = id(rot_enc1).state;
+        #       root["greeting"] = "Hello World";
+    #     - lambda: |-
+    #       id(some_binary_sensor).publish_state(false);
+
+interval:
+  - interval: 1min
+    then:
+      - logger.log: "One minute is over"
+      - logger.log:
+          format: "The funktion returns %d"
+          args: [ 'myFunction1(2,3)' ]
+
+time:
+  - platform: sntp
+    id: esptime
+    timezone: "Europe/Vienna"
+    on_time:
+      - seconds: 0
+        minutes: /1
+        then:
+          - component.update: eink42
+          - logger.log: "Time 0"
+      # - seconds: 30
+      #   minutes: /1
+      #   then:
+      #     - component.update: eink42
+      #     - logger.log: "Time 30"
+
+
+
+
+# text_sensor:
+#   - platform: mqtt_subscribe
+#     name: outdoor_t
+#     id: outdoor_t
+#     internal: true
+#     topic: weatherstation/sensor/temperature/state
+#   - platform: mqtt_subscribe
+#     name: outdoor_h
+#     id: outdoor_h
+#     internal: true
+#     topic: weatherstation/sensor/humidity/state
+#   - platform: mqtt_subscribe
+#     name: outdoor_p
+#     id: outdoor_p
+#     internal: true
+#     topic: weatherstation/sensor/pressure/state
+
+
+
